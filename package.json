@@ -10,8 +10,7 @@
     "demo:playwright": "node playwright/run.mjs",
     "demo:webmcp": "node webmcp/run.mjs",
     "demo:computer": "node computer-use/run.mjs",
-    "demo:computer:openai": "node computer-use/openai-run.mjs",
-    "test": "node scripts/verify.mjs && node scripts/verify-openai.mjs"
+    "test": "node scripts/verify.mjs && node scripts/verify-codex-hook.mjs"
   },
   "dependencies": {
     "playwright": "1.64.1"

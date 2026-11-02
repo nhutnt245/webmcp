@@ -7,7 +7,8 @@ every new page starts empty. This is a mechanism demo, not a performance benchma
 
 | Approach | What the driver sees / does | Best for | Weakness |
 | --- | --- | --- | --- |
-| Computer use ([Claude](computer-use/run.mjs), [OpenAI](computer-use/openai-run.mjs)) | The model sees screenshots and chooses mouse coordinates and keystrokes | Visual tasks, including UIs without automation hooks | Slower, paid model calls; visual mistakes and layout sensitivity |
+| [Computer use](computer-use/run.mjs) | Claude sees screenshots and chooses mouse coordinates and keystrokes | Visual tasks, including UIs without automation hooks | Slower, paid model calls; visual mistakes and layout sensitivity |
+| [Codex Computer Use](#1b-computer-use-codex-desktop-plugin-observed-with-hooks) | The signed-in Codex Desktop plugin sees and operates the page; a read-only hook logs its tool calls | Watching what a native computer-use tool did, with no API key in this repo | Desktop plugin only; hook coverage and screenshot logging are not guaranteed (see below) |
 | [Playwright](playwright/run.mjs) | A deterministic script locates labeled DOM elements, fills, clicks, checks | Repeatable web flows and tests | Needs page structure; this example follows a fixed recipe rather than planning |
 | [WebMCP](webmcp/register.js) | The page publishes named tools with schemas; the client calls them | Structured agent actions designed by the site | Requires site cooperation and experimental browser/agent support |
 
@@ -57,60 +58,116 @@ See [Anthropic's computer-use documentation](https://platform.claude.com/docs/en
 for current model/tool compatibility. No API key is included. `.env` files are
 ignored; the scripts read shell variables, not `.env` files automatically.
 
-## 1b. Computer use (OpenAI API)
+## 1b. Computer use (Codex Desktop plugin, observed with hooks)
 
-Same task, viewport, and screenshot/mouse/keyboard-only transport as the Claude
-demo, but driven by the OpenAI Responses API. This is **OpenAI API usage** with an
-API key, billed to your OpenAI project; it does not use a ChatGPT or Codex login,
-and the code never reads Codex CLI credentials. Start `npm start` in one
-terminal first, then in another:
+This repo adds **no tool, executor, MCP server, or API-key code** for Codex. The
+existing Codex **Computer Use** plugin does the clicking, using your Codex sign-in
+and plan. The only addition is a read-only
+[hook](https://learn.chatgpt.com/docs/hooks) that records which tools Codex called,
+with what arguments, and what came back, so you can see how the task went.
 
-```sh
-export OPENAI_API_KEY='your-key'
-# Optional; must support the Responses computer tool (default shown):
-export OPENAI_MODEL='gpt-6.1-sol'
-# Optional: show the browser
-export HEADED=1
-npm run demo:computer:openai
+1. **Enable the plugin** in the Codex desktop app: **Plugins > Computer Use >
+   Install plugin**, then turn on the server and skill toggles
+   ([official steps](https://learn.chatgpt.com/docs/computer-use)). On Windows it
+   works on the active desktop: keep the browser visible and expect it to take
+   over the foreground. The built-in Browser is not available in the Codex CLI, so
+   this setup does not promise that `codex exec` can drive the plugin.
+2. **Trust the hook.** The repo ships [`.codex/hooks.json`](.codex/hooks.json) and
+   [`.codex/hooks/record-tool-event.mjs`](.codex/hooks/record-tool-event.mjs).
+   Project hooks load only for a trusted project, and Codex skips non-managed
+   hooks until you review them: run `/hooks` in the CLI, or use **Review hooks**
+   in Desktop, and trust the two `PreToolUse`/`PostToolUse` entries. Nothing here
+   edits `~/.codex`, permissions, auth, or trust. Editing the hook changes its
+   hash, so re-review it.
+3. **Start the demo:** `npm start` (leave it running).
+4. **Open this repo as the Codex project** and send a prompt that requires the
+   tool, for example:
+
+```text
+Use @Computer (and no shell commands or code edits) on the todo demo that is
+already running at http://127.0.0.1:3000 in my browser. Add one todo titled
+Book demo flight, mark it complete, and verify the page visibly says
+"1 of 1 complete". Before each action, take a screenshot and state in one line
+what you observe. After each action, state the action and its outcome. Finish
+with a short checkpoint list of observed state, action, and result. Report only
+what you observed through the tool.
 ```
 
-Windows PowerShell:
+The model's narrative is not evidence. Inspect the logs below to confirm that the
+tool was actually used and what it returned.
+
+### What gets recorded
+
+Each tool event is one JSON line in
+`artifacts/codex-hooks/<session_id>/events.jsonl` (gitignored): `recordedAt` plus
+the event Codex supplied (`hook_event_name`, `session_id`, `turn_id`,
+`tool_use_id`, `tool_name`, `tool_input`, and for `PostToolUse` the actual
+`tool_response` or error, `cwd`, `model`, `permission_mode`). A `PreToolUse` and
+`PostToolUse` pair share a `tool_use_id`. Image data actually present in an input or
+result is saved to `images/` next to the log and replaced by a `savedImage` path;
+paths and URLs Codex supplied are kept as references and never fetched. Nothing is
+invented: no screenshot is synthesized, and a screenshot call returns one
+observed image, not a guaranteed before/after pair around every action.
+
+The hook prints nothing and never allows, denies, rewrites, or adds context. If
+recording fails it reports the reason on stderr and exits 1 (a failed hook; the
+tool still runs, whereas exit code 2 would block it). It captures every tool
+event in sessions of this project, including shell commands, because the
+`matcher` is empty; add for example `"matcher": "mcp__.*"` to narrow it, then
+re-review the hook. Sessions in other projects never trigger it.
+
+Inspect from PowerShell (from the repo root):
 
 ```powershell
-$env:OPENAI_API_KEY = 'your-key'
-# Optional; default is gpt-6.1-sol:
-$env:OPENAI_MODEL = 'gpt-6.1-sol'
-# Optional: show the browser
-$env:HEADED = '1'
-npm run demo:computer:openai
+Get-ChildItem artifacts\codex-hooks -Recurse -Filter events.jsonl
+# Follow a session and print one summary line per event:
+Get-Content artifacts\codex-hooks\<session_id>\events.jsonl -Wait | ForEach-Object {
+  $e = $_ | ConvertFrom-Json; '{0} {1} {2} {3}' -f $e.recordedAt, $e.hook_event_name, $e.tool_name, $e.tool_use_id }
+# Full detail of one call:
+Get-Content artifacts\codex-hooks\<session_id>\events.jsonl | ForEach-Object { $_ | ConvertFrom-Json } |
+  Where-Object tool_use_id -eq '<tool_use_id>' | ConvertTo-Json -Depth 20
 ```
 
-The scripts read shell variables only; **`.env` files are not loaded
-automatically** (`.env.example` just lists the names). `DEMO_URL`, `MAX_TURNS`
-(1–100, default 20 requests), and `CHROMIUM_EXECUTABLE_PATH` behave as for the
-Claude demo.
+On Linux/macOS/WSL: `tail -f artifacts/codex-hooks/<session_id>/events.jsonl | jq -c '{recordedAt,hook_event_name,tool_name,tool_use_id}'`.
 
-Flow: `POST https://api.openai.com/v1/responses` with `tools: [{ "type": "computer" }]`.
-Each `computer_call` holds an ordered `actions[]` batch (`click`, `double_click`,
-`drag`, `move`, `scroll`, `keypress`, `type`, `wait`, `screenshot`). The runner
-validates the whole batch, executes it in order, and replies with a
-`computer_call_output` carrying the same `call_id` and a `computer_screenshot`
-(`detail: "original"`), continuing with `previous_response_id`. The model gets no
-DOM, selectors, or accessibility data. Code: [actions](computer-use/openai-actions.mjs),
-[loop](computer-use/openai-loop.mjs), [HTTP call](computer-use/openai-api.mjs),
-[entry point](computer-use/openai-run.mjs). The runner stops with an error (nonzero exit, no
-success message) on HTTP/model-access errors, failed, incomplete, or refused
-responses, unexpected tools or output items, unsupported or malformed actions,
-a response with no action, and the turn limit. Each request has a two-minute
-timeout. If the API attaches a **pending safety check**, the run stops; it never
-acknowledges one automatically, so review the page and rerun yourself.
+### Limits and the trace-format boundary
 
-The final screenshot is saved to `artifacts/openai-computer-final.png`
-(`artifacts/openai-computer-failure.png` is saved best-effort on failure). As
-with Claude, the model finishing is only a claim: inspect that screenshot to
-confirm the page shows **1 of 1 complete**. See OpenAI's
-[computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)
-and [integration recipes](https://developers.openai.com/api/docs/guides/tools-computer-use-integration).
+- These are **Codex hook logs, not a Playwright trace**. There is no `trace.zip`,
+  and `npx playwright show-trace` cannot open them; that viewer applies only to
+  the separate [Playwright demo](#2-playwright-dom).
+- Per the hooks documentation, hooks cover shell, MCP, and most local function
+  tools, but hosted and specialized tool paths can opt out. This README does not
+  claim that every Computer Use operation is captured. Whether the plugin's calls
+  reach hooks, which `tool_name` they use, and whether screenshots arrive as
+  embedded images, references, or not at all are **unverified**: look at your
+  own `events.jsonl`.
+- The Codex transcript format is not a stable interface and is not read here.
+
+### Windows, WSL, and the hook command
+
+The command is resolved from the git root, so it works when Codex starts in a
+subdirectory:
+
+- Linux, macOS, and WSL: `node "$(git rev-parse --show-toplevel)/.codex/hooks/record-tool-event.mjs"`
+- Windows (`commandWindows`): `powershell -NoProfile -Command "node (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/record-tool-event.mjs')"`
+
+This needs `node` and `git` on the PATH that Codex uses to run hooks. The Windows
+override is **unverified on a real Windows Codex Desktop session** (it is only
+defined by the hooks documentation). If it fails, or if your repo lives in WSL
+while Desktop runs on Windows, edit the hook to use absolute paths (this changes
+its hash, so review it again). A non-interactive shell often lacks nvm's `node`, so
+give the full path to the Node binary:
+
+```json
+"command": "/home/you/.nvm/versions/node/v24.0.0/bin/node /home/you/webmcp/.codex/hooks/record-tool-event.mjs",
+"commandWindows": "node C:\\Users\\you\\webmcp\\.codex\\hooks\\record-tool-event.mjs"
+```
+
+For a repo inside WSL opened from Windows Desktop, use a `\\wsl$\<distro>\...`
+path in `commandWindows` only if the agent runs on Windows; if Codex runs its
+agent inside WSL, the POSIX `command` applies. Which of these applies on your
+machine is not established by this repo. Logs are written under the repo's
+`artifacts/` folder on whichever side runs the hook.
 
 ## 2. Playwright (DOM)
 
@@ -203,9 +260,7 @@ await window.todoTools.call('list_todos');
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Computer use only | Anthropic key; never commit it |
 | `ANTHROPIC_MODEL` | No | `claude-sonnet-4-6` |
-| `OPENAI_API_KEY` | OpenAI computer use only | OpenAI API key; never commit it |
-| `OPENAI_MODEL` | No | `gpt-6.1-sol` |
-| `MAX_TURNS` | No | `20`; bounded computer-use requests (Claude and OpenAI) |
+| `MAX_TURNS` | No | `20`; bounded computer-use requests |
 | `DEMO_URL` | No | `http://127.0.0.1:3000`; all drivers |
 | `HEADED` | No | Set to `1` to display a driver's browser |
 | `PORT` | No | `3000`; server only |
@@ -217,14 +272,14 @@ npm test
 
 Starts an ephemeral loopback server, runs the DOM and fallback drivers, and
 checks invalid tool arguments, safe todo text rendering, reset, and server asset
-boundaries, then runs `scripts/verify-openai.mjs`: the OpenAI computer-use path
-against documented Responses fixtures ([fixtures](scripts/openai/fixtures.mjs)) with a
-real local Chromium, plus the real CLI through a test-only `fetch` preload
-([mock](scripts/openai/mock-fetch.mjs)). It checks action ordering, `call_id` /
-screenshot / `previous_response_id` payloads, DOM-verified todo completion,
-and credential, HTTP, malformed-action, safety-check, and turn-limit failures.
-It requires installed Chromium but no key and makes no model call. Tests close their server
-and browsers. See verification results below for what was actually run.
+boundaries. It then runs `scripts/verify-codex-hook.mjs`: the Codex hook recorder
+is executed through its configured command, from a subdirectory of a throwaway git
+repository, with events shaped like the documented hook schema. It checks paired
+pre/post records, preserved input, result and error data, image extraction versus
+reference-only data, session separation and path safety, empty stdout, and
+malformed-input and recording-failure handling. It requires installed Chromium but
+no key and no model call. Tests close their server and browsers. See verification
+results below for what was actually run.
 
 Verified locally on 2026-11-02 with Node 24 and an existing Chromium build 1208:
 
@@ -240,11 +295,11 @@ CHROMIUM_EXECUTABLE_PATH=/absolute/path/to/chrome npm test
   integration were **not verified**.
 - The Claude API loop was **not run**; it needs a paid API key and compatible
   model access. Only its local action adapter was executed without a key.
+- The Codex hook recorder passed `scripts/verify-codex-hook.mjs` on 2026-11-02 (Node 24,
+  Linux/WSL) with documented-schema fixtures. A live Codex Desktop session, the real
+  Computer Use plugin, Windows hook execution (`commandWindows`), and whether
+  Computer Use calls reach hooks or include screenshots were **not exercised**. The
+  fixtures do not prove a live native session.
 - A fresh bundled browser download was not completed in this environment; the
   existing-browser override was used. Other machines can use the normal
   `npx playwright install chromium` setup above.
-- The OpenAI path (`npm run demo:computer:openai`) was exercised only offline (the
-  checks above, run with `npm test` on 2026-11-02). **Live OpenAI API and
-  `gpt-6.1-sol` access are unverified**: no paid call was made, so the real wire
-  behavior, model access, and task success are unconfirmed until you run it
-  with your own key.

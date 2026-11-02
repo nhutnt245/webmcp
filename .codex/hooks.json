@@ -1,0 +1,29 @@
+{
+  "description": "Read-only observer for this demo: records Codex tool calls and results to artifacts/codex-hooks/. See README.md.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/record-tool-event.mjs\"",
+            "commandWindows": "powershell -NoProfile -Command \"node (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/record-tool-event.mjs')\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/record-tool-event.mjs\"",
+            "commandWindows": "powershell -NoProfile -Command \"node (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/record-tool-event.mjs')\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
