@@ -61,9 +61,8 @@ ignored; the scripts read shell variables, not `.env` files automatically.
 
 This is a **Playwright library runner**, not Playwright Test: it launches
 Chromium directly and executes one fixed todo recipe. It does not discover tests
-or infer a plan. Its English step log shows the accessible locator, why that
-locator fits the target, the number of matches, the action, and the observed
-outcome.
+or infer a plan. The flow adds and checks a todo, asserts the resulting state,
+and saves a Playwright trace to `artifacts/playwright-trace.zip`.
 
 Start the demo server in one terminal:
 
@@ -71,33 +70,17 @@ Start the demo server in one terminal:
 npm start
 ```
 
-Run the default flow in another terminal (headless and noninteractive):
+Run the flow in a second terminal (headless unless `HEADED=1`):
 
 ```sh
 npm run demo:playwright
 ```
 
-To watch and advance through each step, use an interactive terminal with a
-desktop display:
+Open the saved trace with Playwright's native trace viewer:
 
 ```sh
-npm run demo:playwright -- --interactive
-```
-
-The browser opens visibly, highlights each located target, and waits for Enter
-before acting. Interactive mode checks for terminal input before launching and
-exits with an error if stdin or stdout is not a TTY.
-
-To save a Playwright trace with screenshots and DOM snapshots:
-
-```sh
-npm run demo:playwright -- --trace
 npx playwright show-trace artifacts/playwright-trace.zip
 ```
-
-You can choose another trace path with `--trace path/to/trace.zip`. Tracing can
-also be combined with `--interactive`. A failed flow saves
-`artifacts/playwright-failure.png` when a page screenshot is available.
 
 Windows PowerShell equivalents:
 
@@ -105,8 +88,6 @@ Windows PowerShell equivalents:
 npm start
 # In a second PowerShell terminal:
 npm run demo:playwright
-npm run demo:playwright -- --interactive
-npm run demo:playwright -- --trace
 npx playwright show-trace artifacts/playwright-trace.zip
 ```
 
@@ -188,8 +169,9 @@ Verified locally on 2026-11-02 with Node 24 and an existing Chromium build 1208:
 CHROMIUM_EXECUTABLE_PATH=/absolute/path/to/chrome npm test
 ```
 
-- Passed the Playwright DOM flow, local structured-tool flow, page/reset and
-  invalid-input checks, and screenshot/mouse/keyboard adapter checks.
+- Passed the Playwright DOM flow with a trace saved during its normal run, the
+  local structured-tool flow, page/reset and invalid-input checks, and
+  screenshot/mouse/keyboard adapter checks.
 - Native `--native` was attempted and exited with the documented unavailable-API
   error on this browser. Native tool discovery/execution and external agent
   integration were **not verified**.
