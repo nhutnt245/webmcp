@@ -59,15 +59,60 @@ ignored; the scripts read shell variables, not `.env` files automatically.
 
 ## 2. Playwright (DOM)
 
+This is a **Playwright library runner**, not Playwright Test: it launches
+Chromium directly and executes one fixed todo recipe. It does not discover tests
+or infer a plan. Its English step log shows the accessible locator, why that
+locator fits the target, the number of matches, the action, and the observed
+outcome.
+
+Start the demo server in one terminal:
+
 ```sh
-npm run demo:playwright
-# Optional visible browser (requires a desktop/display):
-HEADED=1 npm run demo:playwright
+npm start
 ```
 
-Uses accessible labels and roles to add and check the todo, then asserts the
-checkbox and summary. No API key, model, or browser feature flag is required.
-A failure exits nonzero.
+Run the default flow in another terminal (headless and noninteractive):
+
+```sh
+npm run demo:playwright
+```
+
+To watch and advance through each step, use an interactive terminal with a
+desktop display:
+
+```sh
+npm run demo:playwright -- --interactive
+```
+
+The browser opens visibly, highlights each located target, and waits for Enter
+before acting. Interactive mode checks for terminal input before launching and
+exits with an error if stdin or stdout is not a TTY.
+
+To save a Playwright trace with screenshots and DOM snapshots:
+
+```sh
+npm run demo:playwright -- --trace
+npx playwright show-trace artifacts/playwright-trace.zip
+```
+
+You can choose another trace path with `--trace path/to/trace.zip`. Tracing can
+also be combined with `--interactive`. A failed flow saves
+`artifacts/playwright-failure.png` when a page screenshot is available.
+
+Windows PowerShell equivalents:
+
+```powershell
+npm start
+# In a second PowerShell terminal:
+npm run demo:playwright
+npm run demo:playwright -- --interactive
+npm run demo:playwright -- --trace
+npx playwright show-trace artifacts/playwright-trace.zip
+```
+
+The runner uses accessible labels and roles to add and check the todo, then
+asserts the checkbox and summary. No API key, model, or browser feature flag is
+required. A failure exits nonzero.
 
 ## 3. WebMCP (structured tools)
 
