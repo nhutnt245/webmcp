@@ -111,10 +111,12 @@ observed image, not a guaranteed before/after pair around every action.
 
 The hook prints nothing and never allows, denies, rewrites, or adds context. If
 recording fails it reports the reason on stderr and exits 1 (a failed hook; the
-tool still runs, whereas exit code 2 would block it). It captures every tool
-event in sessions of this project, including shell commands, because the
-`matcher` is empty; add for example `"matcher": "mcp__.*"` to narrow it, then
-re-review the hook. Sessions in other projects never trigger it.
+tool still runs, whereas exit code 2 would block it). Only tools whose
+`tool_name` matches the hook `matcher` are recorded; the shipped matcher is
+`^mcp__computer_use__`, which keeps shell commands, file edits and unrelated MCP
+tools out of the log. That prefix is an **unverified default**: confirm it
+against your install (below) and edit the `matcher` in both groups of
+`.codex/hooks.json` if it differs, then re-review the hook. Sessions in other projects never trigger it.
 
 Inspect from PowerShell (from the repo root):
 
@@ -129,6 +131,20 @@ Get-Content artifacts\codex-hooks\<session_id>\events.jsonl | ForEach-Object { $
 ```
 
 On Linux/macOS/WSL: `tail -f artifacts/codex-hooks/<session_id>/events.jsonl | jq -c '{recordedAt,hook_event_name,tool_name,tool_use_id}'`.
+
+### Confirm the tool name and that logging fires
+
+1. Run the prompt above, then check `artifacts/codex-hooks/`. If an
+   `events.jsonl` appears, the matcher fits and each line's `tool_name` is the real
+   name.
+2. If nothing was logged, find the real name: look at the tool call shown in the
+   Codex UI, or temporarily set `"matcher": ".*"` and run a short prompt that
+   touches no secrets. Then restore a narrow matcher built from the name you saw
+   (for example `^mcp__<server>__`), delete the broad log, and re-review the hook.
+3. Re-run the prompt and confirm only Computer Use calls are logged.
+
+`npm test` checks the shipped matcher against name fixtures only; it does not
+prove the matcher fits a live Codex Computer Use install.
 
 ### Limits and the trace-format boundary
 

@@ -1,8 +1,9 @@
 {
-  "description": "Read-only observer for this demo: records Codex tool calls and results to artifacts/codex-hooks/. See README.md.",
+  "description": "Read-only observer for this demo: records Computer Use tool calls and results (matcher is an unverified default; confirm it per README.md) to artifacts/codex-hooks/. See README.md.",
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "^mcp__computer_use__",
         "hooks": [
           {
             "type": "command",
@@ -15,6 +16,7 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "^mcp__computer_use__",
         "hooks": [
           {
             "type": "command",

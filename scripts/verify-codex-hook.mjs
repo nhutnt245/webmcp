@@ -17,6 +17,17 @@ const command = event => {
   return windows ? group.hooks[0].commandWindows : group.hooks[0].command;
 };
 
+// Codex applies each group's `matcher` as a regex on tool_name. Check the shipped matcher against fixtures.
+// The Computer Use name is an unverified default; the negatives are tools that must never be captured.
+for (const event of ['PreToolUse', 'PostToolUse']) {
+  const [{ matcher }] = hooksConfig.hooks[event];
+  assert.equal(typeof matcher, 'string', `${event} must not capture every tool`);
+  const matches = name => new RegExp(matcher).test(name);
+  for (const name of ['mcp__computer_use__click', 'mcp__computer_use__screenshot']) assert.ok(matches(name), `${event} should match ${name}`);
+  for (const name of ['Bash', 'apply_patch', 'Edit', 'mcp__github__create_issue', 'mcp__playwright__browser_click', 'mcp__computer_use_extra__x']) assert.ok(!matches(name), `${event} must not match ${name}`);
+}
+console.log('PASS: hook matchers select only Computer Use tool names (name itself unverified against a live install).');
+
 const parent = await mkdtemp(path.join(os.tmpdir(), 'codex-hook-'));
 const repo = path.join(parent, 'repo');
 const sub = path.join(repo, 'deep', 'subdirectory');
@@ -53,7 +64,7 @@ try {
   // Paired pre/post events keep their IDs, arguments and result exactly as supplied.
   const input = { action: 'click', coordinate: [10, 20], nested: { list: [1, 'two', null] } };
   const result = { content: [{ type: 'text', text: 'Clicked at 10,20' }], structuredContent: { ok: true } };
-  for (const [event, payload] of [['PreToolUse', pre('call-1', 'mcp__computer__click', input)], ['PostToolUse', post('call-1', 'mcp__computer__click', input, result)]]) {
+  for (const [event, payload] of [['PreToolUse', pre('call-1', 'mcp__computer_use__click', input)], ['PostToolUse', post('call-1', 'mcp__computer_use__click', input, result)]]) {
     const outcome = await runHook(event, payload);
     assert.equal(outcome.code, 0, outcome.stderr);
     assert.equal(outcome.stdout, '', 'hook must not print decisions or context');
@@ -63,7 +74,7 @@ try {
   for (const record of [first, second]) {
     assert.equal(record.tool_use_id, 'call-1');
     assert.equal(record.turn_id, 'turn-1');
-    assert.equal(record.tool_name, 'mcp__computer__click');
+    assert.equal(record.tool_name, 'mcp__computer_use__click');
     assert.deepEqual(record.tool_input, input);
     assert.ok(!Number.isNaN(Date.parse(record.recordedAt)));
   }
@@ -77,7 +88,7 @@ try {
   const notBase64 = { type: 'image', data: 'not base64!', mimeType: 'image/png' };
   const unsupported = { type: 'image', data: pngBase64, mimeType: 'image/svg+xml' };
   const imageResult = { content: [{ type: 'image', data: pngBase64, mimeType: 'image/png' }, { type: 'text', text: 'Screenshot' }, reference, notBase64, unsupported], more: { image_url: `data:image/png;base64,${pngBase64}` } };
-  assert.equal((await runHook('PostToolUse', post('shot-1', 'mcp__computer__screenshot', {}, imageResult, { session_id: 'images' }))).code, 0);
+  assert.equal((await runHook('PostToolUse', post('shot-1', 'mcp__computer_use__screenshot', {}, imageResult, { session_id: 'images' }))).code, 0);
   const [imageEvent] = await readEvents('images');
   const [block, text, ...rest] = imageEvent.tool_response.content;
   assert.deepEqual(block, { type: 'image', mimeType: 'image/png', savedImage: 'images/shot-1-post-1.png' });
@@ -92,7 +103,7 @@ try {
 
   // Errors and plain-string results are preserved verbatim.
   const failed = { isError: true, content: [{ type: 'text', text: 'target app is not visible' }] };
-  await runHook('PostToolUse', post('err-1', 'mcp__computer__click', { x: 1 }, failed, { session_id: 'errors' }));
+  await runHook('PostToolUse', post('err-1', 'mcp__computer_use__click', { x: 1 }, failed, { session_id: 'errors' }));
   await runHook('PostToolUse', post('bash-1', 'Bash', { command: 'false' }, 'exit 1\nstderr text', { session_id: 'errors' }));
   const [errorEvent, bashEvent] = await readEvents('errors');
   assert.deepEqual(errorEvent.tool_response, failed);
