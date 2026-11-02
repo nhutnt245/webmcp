@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { act } from './actions.mjs';
+import { taskPrompt, viewport } from './task.mjs';
 
 const key = process.env.ANTHROPIC_API_KEY;
 if (!key) throw new Error('Set ANTHROPIC_API_KEY in your shell; this demo makes paid API calls.');
@@ -7,10 +8,10 @@ const maxTurns = Number(process.env.MAX_TURNS ?? 20);
 if (!Number.isInteger(maxTurns) || maxTurns < 1 || maxTurns > 100) throw new Error('MAX_TURNS must be an integer from 1 to 100');
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE_PATH, headless: process.env.HEADED !== '1' });
 try {
-  const page = await browser.newPage({ viewport: { width: 1024, height: 768 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
   await page.goto(process.env.DEMO_URL ?? 'http://127.0.0.1:3000');
   const messages = [{ role: 'user', content: [
-    { type: 'text', text: 'On the open todo demo, add exactly one todo titled Book demo flight, then mark it complete. Verify the visible page says 1 of 1 complete. Use only the computer tool. The tool controls a browser content viewport, not an OS desktop. Stay on this page. When finished, explain the result.' },
+    { type: 'text', text: taskPrompt },
     await act(page, { action: 'screenshot' }),
   ] }];
   for (let turn = 1; turn <= maxTurns; turn++) {

@@ -25,6 +25,26 @@ date: 2026-11-02
   actions; the model loop does not inspect DOM state
   ([computer-use/actions.mjs](../../../computer-use/actions.mjs):1,
   [computer-use/run.mjs](../../../computer-use/run.mjs):12).
+- The OpenAI computer-use driver is a second pixel-only path: a Responses API
+  loop sends `tools: [{type: "computer"}]`, validates each `computer_call`'s
+  `actions[]` batch against the viewport before executing any of it, and returns
+  a `computer_call_output` screenshot with the same `call_id`, continuing via
+  `previous_response_id` ([computer-use/openai-loop.mjs](../../../computer-use/openai-loop.mjs):7,
+  [computer-use/openai-actions.mjs](../../../computer-use/openai-actions.mjs):19). Pending
+  safety checks, incomplete or refused responses, unexpected tools, and turn
+  limits stop the run instead of reporting success
+  ([computer-use/openai-loop.mjs](../../../computer-use/openai-loop.mjs):35,
+  [computer-use/openai-loop.mjs](../../../computer-use/openai-loop.mjs):58). The HTTP call
+  and default model live in [computer-use/openai-api.mjs](../../../computer-use/openai-api.mjs):3.
+  The task prompt and viewport are shared with the Claude driver
+  ([computer-use/task.mjs](../../../computer-use/task.mjs):3). Final artifact:
+  `artifacts/openai-computer-final.png` ([computer-use/openai-run.mjs](../../../computer-use/openai-run.mjs):7).
+- OpenAI tests are offline: documented Responses fixtures replace the model, the
+  DOM judges the todo outcome, and the real CLI runs through a test-only `fetch`
+  preload rather than a production base-URL option
+  ([scripts/verify-openai.mjs](../../../scripts/verify-openai.mjs):50,
+  [scripts/verify-openai.mjs](../../../scripts/verify-openai.mjs):262). Live API
+  access was UNVERIFIED when this note was written (Updated 2026-11-02).
 - Native WebMCP registration is feature-detected; a separate local registry is
   always available for the portable demonstration. Local calls do not establish
   external browser-agent integration

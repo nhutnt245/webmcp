@@ -7,7 +7,7 @@ every new page starts empty. This is a mechanism demo, not a performance benchma
 
 | Approach | What the driver sees / does | Best for | Weakness |
 | --- | --- | --- | --- |
-| [Computer use](computer-use/run.mjs) | Claude sees screenshots and chooses mouse coordinates and keystrokes | Visual tasks, including UIs without automation hooks | Slower, paid model calls; visual mistakes and layout sensitivity |
+| Computer use ([Claude](computer-use/run.mjs), [OpenAI](computer-use/openai-run.mjs)) | The model sees screenshots and chooses mouse coordinates and keystrokes | Visual tasks, including UIs without automation hooks | Slower, paid model calls; visual mistakes and layout sensitivity |
 | [Playwright](playwright/run.mjs) | A deterministic script locates labeled DOM elements, fills, clicks, checks | Repeatable web flows and tests | Needs page structure; this example follows a fixed recipe rather than planning |
 | [WebMCP](webmcp/register.js) | The page publishes named tools with schemas; the client calls them | Structured agent actions designed by the site | Requires site cooperation and experimental browser/agent support |
 
@@ -56,6 +56,61 @@ automated DOM verification. Inspect that screenshot to confirm success.
 See [Anthropic's computer-use documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
 for current model/tool compatibility. No API key is included. `.env` files are
 ignored; the scripts read shell variables, not `.env` files automatically.
+
+## 1b. Computer use (OpenAI API)
+
+Same task, viewport, and screenshot/mouse/keyboard-only transport as the Claude
+demo, but driven by the OpenAI Responses API. This is **OpenAI API usage** with an
+API key, billed to your OpenAI project; it does not use a ChatGPT or Codex login,
+and the code never reads Codex CLI credentials. Start `npm start` in one
+terminal first, then in another:
+
+```sh
+export OPENAI_API_KEY='your-key'
+# Optional; must support the Responses computer tool (default shown):
+export OPENAI_MODEL='gpt-6.1-sol'
+# Optional: show the browser
+export HEADED=1
+npm run demo:computer:openai
+```
+
+Windows PowerShell:
+
+```powershell
+$env:OPENAI_API_KEY = 'your-key'
+# Optional; default is gpt-6.1-sol:
+$env:OPENAI_MODEL = 'gpt-6.1-sol'
+# Optional: show the browser
+$env:HEADED = '1'
+npm run demo:computer:openai
+```
+
+The scripts read shell variables only; **`.env` files are not loaded
+automatically** (`.env.example` just lists the names). `DEMO_URL`, `MAX_TURNS`
+(1–100, default 20 requests), and `CHROMIUM_EXECUTABLE_PATH` behave as for the
+Claude demo.
+
+Flow: `POST https://api.openai.com/v1/responses` with `tools: [{ "type": "computer" }]`.
+Each `computer_call` holds an ordered `actions[]` batch (`click`, `double_click`,
+`drag`, `move`, `scroll`, `keypress`, `type`, `wait`, `screenshot`). The runner
+validates the whole batch, executes it in order, and replies with a
+`computer_call_output` carrying the same `call_id` and a `computer_screenshot`
+(`detail: "original"`), continuing with `previous_response_id`. The model gets no
+DOM, selectors, or accessibility data. Code: [actions](computer-use/openai-actions.mjs),
+[loop](computer-use/openai-loop.mjs), [HTTP call](computer-use/openai-api.mjs),
+[entry point](computer-use/openai-run.mjs). The runner stops with an error (nonzero exit, no
+success message) on HTTP/model-access errors, failed, incomplete, or refused
+responses, unexpected tools or output items, unsupported or malformed actions,
+a response with no action, and the turn limit. Each request has a two-minute
+timeout. If the API attaches a **pending safety check**, the run stops; it never
+acknowledges one automatically, so review the page and rerun yourself.
+
+The final screenshot is saved to `artifacts/openai-computer-final.png`
+(`artifacts/openai-computer-failure.png` is saved best-effort on failure). As
+with Claude, the model finishing is only a claim: inspect that screenshot to
+confirm the page shows **1 of 1 complete**. See OpenAI's
+[computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)
+and [integration recipes](https://developers.openai.com/api/docs/guides/tools-computer-use-integration).
 
 ## 2. Playwright (DOM)
 
@@ -167,7 +222,9 @@ await window.todoTools.call('list_todos');
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Computer use only | Anthropic key; never commit it |
 | `ANTHROPIC_MODEL` | No | `claude-sonnet-4-6` |
-| `MAX_TURNS` | No | `20`; bounded computer-use requests |
+| `OPENAI_API_KEY` | OpenAI computer use only | OpenAI API key; never commit it |
+| `OPENAI_MODEL` | No | `gpt-6.1-sol` |
+| `MAX_TURNS` | No | `20`; bounded computer-use requests (Claude and OpenAI) |
 | `DEMO_URL` | No | `http://127.0.0.1:3000`; all drivers |
 | `HEADED` | No | Set to `1` to display a driver's browser |
 | `PORT` | No | `3000`; server only |
@@ -179,7 +236,13 @@ npm test
 
 Starts an ephemeral loopback server, runs the DOM and fallback drivers, and
 checks invalid tool arguments, safe todo text rendering, reset, and server asset
-boundaries. It requires installed Chromium but no key. Tests close their server
+boundaries, then runs `scripts/verify-openai.mjs`: the OpenAI computer-use path
+against documented Responses fixtures ([fixtures](scripts/openai/fixtures.mjs)) with a
+real local Chromium, plus the real CLI through a test-only `fetch` preload
+([mock](scripts/openai/mock-fetch.mjs)). It checks action ordering, `call_id` /
+screenshot / `previous_response_id` payloads, DOM-verified todo completion,
+and credential, HTTP, malformed-action, safety-check, and turn-limit failures.
+It requires installed Chromium but no key and makes no model call. Tests close their server
 and browsers. See verification results below for what was actually run.
 
 Verified locally on 2026-11-02 with Node 24 and an existing Chromium build 1208:
@@ -198,3 +261,8 @@ CHROMIUM_EXECUTABLE_PATH=/absolute/path/to/chrome npm test
 - A fresh bundled browser download was not completed in this environment; the
   existing-browser override was used. Other machines can use the normal
   `npx playwright install chromium` setup above.
+- The OpenAI path (`npm run demo:computer:openai`) was exercised only offline (the
+  checks above, run with `npm test` on 2026-11-02). **Live OpenAI API and
+  `gpt-6.1-sol` access are unverified**: no paid call was made, so the real wire
+  behavior, model access, and task success are unconfirmed until you run it
+  with your own key.
