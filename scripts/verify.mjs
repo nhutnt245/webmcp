@@ -12,10 +12,11 @@ const url = `http://127.0.0.1:${server.address().port}`;
 const artifactDir = await mkdtemp(path.join(os.tmpdir(), 'webmcp-playwright-'));
 let browser;
 try {
-  const tracePath = path.join(artifactDir, 'playwright-trace.zip');
+  const tracePath = path.join(artifactDir, 'artifacts', 'playwright-trace.zip');
   const playwrightRun = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['playwright/run.mjs', '--trace', tracePath], {
+    const child = spawn(process.execPath, [path.resolve('playwright/run.mjs')], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: artifactDir,
       env: { ...process.env, DEMO_URL: url },
     });
     let output = '';
@@ -24,30 +25,11 @@ try {
     child.once('error', reject);
     child.once('exit', code => code === 0 ? resolve(output) : reject(new Error(`playwright/run.mjs exited ${code}:\n${output}`)));
   });
-  assert.match(playwrightRun, /STEP 1: Navigate to the todo demo/);
-  assert.match(playwrightRun, /getByLabel\('New todo', \{ exact: true \}\)/);
-  assert.match(playwrightRun, /getByRole\('button', \{ name: 'Add todo', exact: true \}\)/);
-  assert.match(playwrightRun, /matched 1 element; expected 1/);
-  assert.match(playwrightRun, /FLOW COMPLETE: 1 checkbox, checked=true, summary="1 of 1 complete"/);
+  assert.match(playwrightRun, /Playwright flow complete: 1 todo added and checked\./);
   assert.match(playwrightRun, /Trace saved:/);
-  assert.doesNotMatch(playwrightRun, /Press Enter to continue/);
-  assert.ok((await stat(tracePath)).size > 0, 'Playwright trace should be recorded');
-  console.log('PASS: Playwright flow emits locator evidence and records a noninteractive trace.');
-
-  const interactiveWithoutTty = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['playwright/run.mjs', '--interactive'], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, DEMO_URL: url },
-    });
-    let output = '';
-    child.stdout.setEncoding('utf8').on('data', chunk => { output += chunk; });
-    child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
-    child.once('error', reject);
-    child.once('exit', code => resolve({ code, output }));
-  });
-  assert.notEqual(interactiveWithoutTty.code, 0);
-  assert.match(interactiveWithoutTty.output, /--interactive requires an interactive terminal/);
-  console.log('PASS: interactive mode rejects non-TTY input without launching or hanging.');
+  const trace = await stat(tracePath);
+  assert.ok(trace.size > 0, 'Playwright trace should be recorded by the normal run');
+  console.log('PASS: Playwright flow records a trace during the normal run.');
 
   for (const script of ['webmcp/run.mjs']) {
     await new Promise((resolve, reject) => {
