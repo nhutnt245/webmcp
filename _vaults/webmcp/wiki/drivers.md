@@ -13,12 +13,10 @@ date: 2026-11-02
   ([scripts/server.mjs](../../../scripts/server.mjs):4).
 - The DOM driver uses labeled inputs, buttons, and checkboxes
   ([playwright/run.mjs](../../../playwright/run.mjs):8).
-- The Playwright driver reports its fixed locator strategy, rationale, match
-  count, action, and outcome; `--interactive` requires a TTY and highlights the
-  current target, while `--trace` saves screenshots and DOM snapshots for the
-  Playwright trace viewer ([playwright/run.mjs](../../../playwright/run.mjs):23,
-  [playwright/run.mjs](../../../playwright/run.mjs):54,
-  [playwright/run.mjs](../../../playwright/run.mjs):69,
+- The Playwright driver runs a fixed todo flow, checks the resulting state, and
+  saves screenshots and DOM snapshots to `artifacts/playwright-trace.zip` during
+  every run. Open it with the native
+  `npx playwright show-trace` command ([playwright/run.mjs](../../../playwright/run.mjs):1,
   [README.md](../../../README.md):60,
   [scripts/verify.mjs](../../../scripts/verify.mjs):12).
 - The computer-use transport receives screenshots and executes mouse/keyboard
