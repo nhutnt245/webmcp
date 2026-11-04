@@ -1,5 +1,56 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Choose a flight · Demo flights</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><script type="module" src="/pages/booking.js"></script></head>
-<body data-page="results"><header><strong>Demo flights</strong><span>Search → Choose</span></header><main><h1>Choose a flight</h1>
-<p id="route"></p><form id="filter-form"><label>Maximum price (USD)<input name="max_price" type="number" min="0" step="0.01"></label><label>Departure period<select name="time_of_day"><option value="">Any time</option><option>morning</option><option>afternoon</option><option>evening</option></select></label><label>Maximum stops<select name="max_stops"><option value="">Any</option><option>0</option><option>1</option><option>2</option></select></label><button type="submit">Filter flights</button><button id="clear-filters" type="button" hidden>Clear filters</button></form><form id="sort-form"><label>Sort by<select name="by"><option value="price">Price</option><option value="departure">Departure</option><option value="duration">Duration</option></select></label><label>Order<select name="order"><option value="asc">Ascending</option><option value="desc">Descending</option></select></label><button type="submit">Sort flights</button></form><section id="selection" hidden aria-label="Selected-flight summary"></section><div id="results" class="grid"></div>
-<p id="message" role="status" aria-live="polite"></p><section id="answer-key" hidden></section></main><footer>Local demo · Fictional flights</footer></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Choose a flight · Demo flights</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/pages/booking.js"></script>
+  </head>
+  <body data-page="results">
+    <header><strong>Demo flights</strong><span>Search → Choose</span></header>
+    <main>
+      <h1>Choose a flight</h1>
+      <p id="route"></p>
+      <form id="filter-form">
+        <label>Maximum price (USD)<input name="max_price" type="number" min="0" step="0.01" /></label
+        ><label
+          >Departure period<select name="time_of_day">
+            <option value="">Any time</option>
+            <option>morning</option>
+            <option>afternoon</option>
+            <option>evening</option>
+          </select></label
+        ><label
+          >Maximum stops<select name="max_stops">
+            <option value="">Any</option>
+            <option>0</option>
+            <option>1</option>
+            <option>2</option>
+          </select></label
+        ><button type="submit">Filter flights</button
+        ><button id="clear-filters" type="button" hidden>Clear filters</button>
+      </form>
+      <form id="sort-form">
+        <label
+          >Sort by<select name="by">
+            <option value="price">Price</option>
+            <option value="departure">Departure</option>
+            <option value="duration">Duration</option>
+          </select></label
+        ><label
+          >Order<select name="order">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select></label
+        ><button type="submit">Sort flights</button>
+      </form>
+      <section id="selection" hidden aria-label="Selected-flight summary"></section>
+      <div id="results" class="grid"></div>
+      <p id="message" role="status" aria-live="polite"></p>
+      <section id="answer-key" hidden></section>
+    </main>
+    <footer>Local demo · Fictional flights</footer>
+  </body>
+</html>
