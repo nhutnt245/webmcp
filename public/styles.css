@@ -106,8 +106,37 @@ td {
   min-height: 1.5rem;
   color: #8e2b12;
 }
-.cheapest {
-  background-color: var(--cheapest-colour);
+.results-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.results-layout > * {
+  min-width: 0;
+}
+.results-layout .card {
+  margin: 0;
+}
+.card {
+  position: relative;
+  padding-top: 3.5rem;
+}
+@media (max-width: 640px) {
+  .results-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.lowest-price-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  background: #c8e3f7;
+  color: #17476c;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 .cheapest::after {
   content: var(--fare-cue);
@@ -117,8 +146,4 @@ td {
 .card.selected {
   outline: 3px solid #175b92;
   outline-offset: 2px;
-}
-.selected-label {
-  font-weight: 700;
-  color: #175b92;
 }
