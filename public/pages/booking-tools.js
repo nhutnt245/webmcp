@@ -17,9 +17,5 @@ export function bookingTools(page, booking, actions) {
     if (state.visibleFlights.length) tools.push(tool('select_flight', 'Select a currently visible flight.', { flight_id: { type: 'string', enum: state.visibleFlights.map(f => f.id) } }, ['flight_id'], actions.select));
     return tools;
   }
-  const tools = [simple('get_booking_info', 'Read selected flight, passenger information and booking status.', actions.getInfo)];
-  if (state.stage === 'confirmed') return [...tools, simple('start_new_booking', 'Start a new demo booking.', actions.startNew)];
-  tools.push(tool('set_passenger_info', 'Save demo passenger information.', { name: { type: 'string', minLength: 1, maxLength: 100 }, email: { type: 'string', format: 'email', maxLength: 254 }, phone: { type: 'string', maxLength: 40 } }, ['name', 'email'], actions.passenger));
-  if (state.passenger) tools.push(simple('confirm_booking', 'Confirm without payment or a real ticket.', actions.confirm));
-  return tools;
+  return [];
 }
