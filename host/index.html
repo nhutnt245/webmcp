@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iframe host · allow="tools"</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Iframe host (parent page)</strong>
+      <span>http://127.0.0.1:4174</span>
+    </header>
+
+    <main>
+      <h1>The flight app inside an iframe, with <code>allow="tools"</code></h1>
+
+      <p>
+        The page you are reading is the <strong>parent</strong> (port 4174). The framed page below is the
+        <strong>child</strong>: the same flight app that <code>npm start</code> serves on port 4173. The two ports make
+        two different origins.
+      </p>
+
+      <p>
+        The <code>tools</code> Permissions Policy defaults to <code>self</code>, so a cross-origin iframe cannot use
+        WebMCP unless the parent delegates it with <code>allow="tools"</code>.
+      </p>
+
+      <nav>
+        <strong>Compare:</strong>
+        <a href="/" aria-current="page">With allow="tools"</a>
+        <a href="/no-allow.html">Without allow</a>
+      </nav>
+
+      <!-- The child app is on another port, so it is a cross-origin iframe. allow="tools" delegates WebMCP to it. -->
+      <iframe
+        src="http://127.0.0.1:4173/"
+        allow="tools"
+        title="Flight app (child, port 4173) with allow=tools"
+      ></iframe>
+
+      <pre><code>&lt;iframe src="http://127.0.0.1:4173/" allow="tools"&gt;&lt;/iframe&gt;</code></pre>
+
+      <p>
+        To test it, open DevTools and choose the <strong>child frame</strong> (127.0.0.1:4173) in the console's context
+        selector. See the README for the steps.
+      </p>
+    </main>
+  </body>
+</html>

@@ -1,13 +1,17 @@
-// A tiny static file server for the demo: `npm start`, then open http://127.0.0.1:4173
-// It only serves the files in the public/ folder. There is no API and no database.
+// A tiny static file server for the demo.
+//   npm start             the flight app (public/)       http://127.0.0.1:4173
+//   npm run start:host    the iframe host page (host/)   http://127.0.0.1:4174
+// It only serves the files of one folder. There is no API and no database.
+// Usage: node server.js [folder] [port]
 
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const publicFolder = fileURLToPath(new URL('./public/', import.meta.url));
-const port = Number(process.env.PORT || 4173);
+const [folderName = 'public', portArgument] = process.argv.slice(2);
+const publicFolder = fileURLToPath(new URL(`./${folderName}/`, import.meta.url));
+const port = Number(portArgument || process.env.PORT || 4173);
 
 const contentTypes = {
   '.html': 'text/html',
@@ -19,7 +23,7 @@ const server = createServer(async (request, response) => {
   const { pathname } = new URL(request.url, 'http://localhost');
   const requestedFile = resolve(publicFolder, `.${pathname === '/' ? '/index.html' : pathname}`);
 
-  // Never serve anything outside the public/ folder.
+  // Never serve anything outside the chosen folder.
   if (!requestedFile.startsWith(publicFolder.endsWith(sep) ? publicFolder : publicFolder + sep)) {
     response.writeHead(403, { 'Content-Type': 'text/plain' }).end('Forbidden');
     return;
@@ -37,5 +41,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`Demo flights: http://127.0.0.1:${port}`);
+  console.log(`Serving ${folderName}/: http://127.0.0.1:${port}`);
 });

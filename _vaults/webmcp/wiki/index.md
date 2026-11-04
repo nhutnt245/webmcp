@@ -9,7 +9,7 @@ date: 2026-11-04
 Updated 2026-11-04. A three-page flight demo (search, results, summary) for learning the WebMCP
 Declarative and Imperative APIs. The reading order is in [README.md](../../../README.md):1.
 
-Authority order: live code in `public/` and `server.js`; the three primary sources linked in the README;
+Authority order: live code in `public/`, `host/` and `server.js`; the three primary sources linked in the README;
 this wiki; session memory.
 
 | Folder    | Entry      | Purpose                                      |
@@ -27,6 +27,14 @@ this wiki; session memory.
 - Errors reach the agent only when returned as a value (`Promise.resolve({ error })` for `respondWith`, a returned
   object from `execute`); a rejected promise or a thrown error gives the agent only "Tool execution failed"
   (observed in Chrome 158 with `--enable-features=WebMCP`).
+- `server.js` serves one folder: `npm start` serves `public/` on 4173, `npm run start:host` serves `host/` on 4174
+  ([server.js](../../../server.js):1, [package.json](../../../package.json):1). `host/index.html` and
+  `host/no-allow.html` embed the app in a cross-origin iframe with and without `allow="tools"`; the second port is the
+  only thing that makes the origins differ, so keep `127.0.0.1` on both.
+- The `tools` Permissions Policy defaults to `self`. In Chrome 158 a child without `allow="tools"` still has
+  `document.modelContext`, but `registerTool()` and `getTools()` reject with `NotAllowedError`;
+  `imperative-tools.js` catches that and only warns. `allow="tools"` lets the child register its own tools; it does not
+  make the parent's `getTools()` list them (observed `[]`). Test in the child frame's DevTools context, not `top`.
 - The app has no tests, evals or probes by design. Verify changes in a WebMCP-enabled Chrome with
   `await document.modelContext.getTools()` and `executeTool`.
 

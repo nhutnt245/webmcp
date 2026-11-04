@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iframe host · no allow</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Iframe host (parent page)</strong>
+      <span>http://127.0.0.1:4174</span>
+    </header>
+
+    <main>
+      <h1>The same flight app in an iframe, <em>without</em> <code>allow</code></h1>
+
+      <p>
+        Same parent (port 4174), same child (port 4173). The only difference from the other page is that the iframe has
+        no <code>allow="tools"</code>, so the child keeps the default <code>tools=self</code> policy. The child's
+        ordinary page still works, but WebMCP registration is not allowed in it.
+      </p>
+
+      <nav>
+        <strong>Compare:</strong>
+        <a href="/">With allow="tools"</a>
+        <a href="/no-allow.html" aria-current="page">Without allow</a>
+      </nav>
+
+      <!-- No allow attribute: the cross-origin child cannot use WebMCP. -->
+      <iframe src="http://127.0.0.1:4173/" title="Flight app (child, port 4173) without allow"></iframe>
+
+      <pre><code>&lt;iframe src="http://127.0.0.1:4173/"&gt;&lt;/iframe&gt;</code></pre>
+    </main>
+  </body>
+</html>

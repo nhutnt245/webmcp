@@ -1,0 +1,75 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #202d39;
+  background: #f5f7f9;
+  line-height: 1.55;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+header,
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 1.25rem;
+}
+
+/* A dark header and a dashed frame make the parent page easy to tell apart from the child app. */
+header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: none;
+  color: white;
+  background: #3b2a5a;
+}
+
+h1 {
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+a {
+  color: #175b92;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+[aria-current='page'] {
+  color: inherit;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+iframe {
+  display: block;
+  width: 100%;
+  height: 780px;
+  border: 3px dashed #3b2a5a;
+  border-radius: 0.6rem;
+  background: white;
+}
+
+pre {
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: #e6ebf0;
+}
+
+:focus-visible {
+  outline: 3px solid #d67700;
+  outline-offset: 3px;
+}
