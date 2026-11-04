@@ -19,6 +19,9 @@
 import { FLIGHT_IDS } from './flights.js';
 
 // Browsers without WebMCP have no document.modelContext. The page then works as an ordinary website.
+// Inside a cross-origin iframe without allow="tools", document.modelContext exists but registerTool() rejects
+// with NotAllowedError. The try/catch in the functions below turns that into a console warning, and the page
+// keeps working for humans.
 function isWebMcpAvailable() {
   return Boolean(document.modelContext);
 }

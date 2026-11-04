@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "start:host": "node server.js host 4174",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
