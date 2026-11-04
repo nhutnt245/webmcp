@@ -6,80 +6,117 @@
     <title>Choose a flight · Demo flights</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/styles.css" />
-    <script type="module" src="/pages/booking.js"></script>
+    <script type="module" src="/js/results-page.js"></script>
   </head>
-  <body data-page="results">
-    <header><strong>Demo flights</strong><span>Search → Choose</span></header>
+  <body>
+    <header>
+      <strong>Demo flights</strong>
+      <span>Search → Choose → Summary</span>
+    </header>
+
     <main>
       <h1>Choose a flight</h1>
       <p id="route"></p>
-      <a id="edit-search" href="/">Edit search</a>
+      <a id="edit-search" class="page-link" href="/">Edit search</a>
+
       <div class="results-layout">
-        <aside class="results-filters">
+        <aside>
+          <!--
+            WebMCP DECLARATIVE API: the filter form is the tool "filter_flights".
+            The agent can send any of the three fields. A field it leaves out keeps the value
+            already shown in the form. The submit handler is in /js/results-page.js.
+          -->
           <form
             id="filter-form"
             toolname="filter_flights"
-            tooldescription="Filter the flights on the results page. Fields you supply replace that filter; fields you omit keep their current value; an empty string clears a dropdown filter. Use clear_filters to remove all filters."
+            tooldescription="Filter the flights on the results page. Fields you leave out keep their current value. An empty value switches that filter off. To remove all filters at once use the clear_filters tool."
             toolautosubmit
           >
-            <label
-              >Maximum price (USD)<input
+            <div class="field">
+              <label for="max_price">Maximum price (USD)</label>
+              <input
+                id="max_price"
                 name="max_price"
                 type="number"
                 min="0"
-                step="0.01"
-                toolparamdescription="Maximum price in US dollars, for example 150." /></label
-            ><label
-              >Departure period<select
+                step="1"
+                toolparamdescription="Maximum price in US dollars, for example 150. Empty means no limit."
+              />
+            </div>
+
+            <div class="field">
+              <label for="time_of_day">Departure period</label>
+              <select
+                id="time_of_day"
                 name="time_of_day"
                 toolparamdescription="Departure period: morning (before 12:00), afternoon (12:00 to 17:59) or evening (18:00 onward). Empty means any time."
               >
                 <option value="">Any time</option>
-                <option>morning</option>
-                <option>afternoon</option>
-                <option>evening</option>
-              </select></label
-            ><label
-              >Maximum stops<select
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+                <option value="evening">Evening</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="max_stops">Maximum stops</label>
+              <select
+                id="max_stops"
                 name="max_stops"
                 toolparamdescription="Maximum number of stops: 0, 1 or 2. Empty means any number."
               >
                 <option value="">Any</option>
-                <option>0</option>
-                <option>1</option>
-                <option>2</option>
-              </select></label
-            ><button type="submit">Filter flights</button
-            ><button id="clear-filters" type="button" hidden>Clear filters</button>
+                <option value="0">0 (non-stop)</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+
+            <button type="submit">Filter flights</button>
+            <!-- This button is not a form tool: the imperative tool "clear_filters" does the same job. -->
+            <button id="clear-filters" type="button" hidden>Clear filters</button>
           </form>
+
+          <!-- WebMCP DECLARATIVE API: the sort form is the tool "sort_flights". -->
           <form
             id="sort-form"
             toolname="sort_flights"
             tooldescription="Sort the visible flights by price, departure time or duration, ascending or descending."
             toolautosubmit
           >
-            <label
-              >Sort by<select name="by" required toolparamdescription="Sort field: price, departure or duration.">
+            <div class="field">
+              <label for="by">Sort by</label>
+              <select id="by" name="by" required toolparamdescription="Sort field: price, departure or duration.">
                 <option value="price">Price</option>
                 <option value="departure">Departure</option>
                 <option value="duration">Duration</option>
-              </select></label
-            ><label
-              >Order<select
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="order">Order</label>
+              <select
+                id="order"
                 name="order"
                 required
                 toolparamdescription="Sort direction: asc (lowest first) or desc (highest first)."
               >
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
-              </select></label
-            ><button type="submit">Sort flights</button>
+              </select>
+            </div>
+
+            <button type="submit">Sort flights</button>
           </form>
         </aside>
+
+        <!-- The flight cards are created in /js/results-page.js. -->
         <div id="results" class="grid"></div>
       </div>
+
       <p id="message" role="status" aria-live="polite"></p>
     </main>
+
     <footer>Local demo · Fictional flights</footer>
   </body>
 </html>

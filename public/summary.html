@@ -6,17 +6,26 @@
     <title>Flight summary · Demo flights</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/styles.css" />
-    <script type="module" src="/pages/booking.js"></script>
+    <script type="module" src="/js/summary-page.js"></script>
   </head>
-  <body data-page="summary">
-    <header><strong>Demo flights</strong><span>Search → Choose → Summary</span></header>
+  <body>
+    <header>
+      <strong>Demo flights</strong>
+      <span>Search → Choose → Summary</span>
+    </header>
+
     <main>
       <h1>Flight summary</h1>
+
+      <!-- The selected flight card is created in /js/summary-page.js. -->
       <div id="flight-summary"></div>
-      <a id="back-results" href="/results.html">Back to results</a>
-      <a id="edit-search" href="/">Edit search</a>
+
+      <a id="back-to-results" class="page-link" href="/results.html">Back to results</a>
+      <a id="edit-search" class="page-link" href="/">Edit search</a>
+
       <p id="message" role="status" aria-live="polite"></p>
     </main>
+
     <footer>Local demo · Fictional flights</footer>
   </body>
 </html>

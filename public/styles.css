@@ -1,15 +1,20 @@
+/* ---- Page basics ---- */
+
 :root {
   font-family: system-ui, sans-serif;
   color: #202d39;
   background: #f5f7f9;
   line-height: 1.55;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
 }
+
 header,
 main,
 footer {
@@ -17,6 +22,7 @@ footer {
   margin: auto;
   padding: 1.25rem;
 }
+
 header {
   display: flex;
   gap: 1.5rem;
@@ -24,40 +30,52 @@ header {
   flex-wrap: wrap;
   border-bottom: 1px solid #cad3dc;
 }
-a {
-  color: #175b92;
-}
-#edit-search {
-  display: inline-block;
-  margin: 0 1rem 1rem 0;
-}
+
 h1 {
   margin-top: 0;
   line-height: 1.2;
 }
+
 h2 {
   font-size: 1.2rem;
 }
-section,
-.card {
+
+a {
+  color: #175b92;
+}
+
+.page-link {
+  display: inline-block;
+  margin: 0 1rem 1rem 0;
+}
+
+:focus-visible {
+  outline: 3px solid #d67700;
+  outline-offset: 3px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---- Forms ---- */
+
+form {
   padding: 1.25rem;
   border: 1px solid #cad3dc;
   border-radius: 0.6rem;
   background: white;
   margin: 1rem 0;
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: 1rem;
-}
-.grid > * {
-  min-width: 0;
-}
-label {
-  display: block;
+
+.field {
   margin: 0.7rem 0;
 }
+
+.field label {
+  display: block;
+}
+
 input,
 select,
 button {
@@ -66,88 +84,69 @@ button {
   border: 1px solid #8195a7;
   border-radius: 0.3rem;
 }
-input,
-select {
+
+.field input,
+.field select {
+  width: 100%;
   max-width: 100%;
 }
-label input,
-label select {
-  display: block;
-  width: 100%;
-}
+
 button {
   background: #175b92;
   color: white;
   cursor: pointer;
   margin: 0.25rem 0.25rem 0.25rem 0;
 }
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-:focus-visible {
-  outline: 3px solid #d67700;
-  outline-offset: 3px;
-}
-[hidden] {
-  display: none !important;
-}
-code,
-td {
-  overflow-wrap: anywhere;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th,
-td {
-  padding: 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #cad3dc;
-}
+
+/* The status line under the page. Errors are red. */
 #message {
   min-height: 1.5rem;
+}
+
+#message.error {
   color: #8e2b12;
 }
+
+/* ---- Results page ---- */
+
 .results-layout {
   display: grid;
   grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
-.results-layout > * {
-  min-width: 0;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 1rem;
 }
-.results-layout .card {
-  margin: 0;
-}
-.card {
-  position: relative;
-  padding-top: 3.5rem;
-}
+
 @media (max-width: 640px) {
   .results-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---- Flight card ---- */
+
+.card h2 {
+  margin: 0.5rem 0;
+}
+
+.card {
+  padding: 1.25rem;
+  border: 1px solid #cad3dc;
+  border-radius: 0.6rem;
+  background: white;
+}
+
 .lowest-price-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+  display: inline-block;
   padding: 0.1rem 0.5rem;
   border-radius: 1rem;
   background: #c8e3f7;
   color: #17476c;
   font-size: 0.85rem;
   font-weight: 700;
-}
-#results .cheapest::after {
-  content: 'Lowest fare cue 4821';
-  display: block;
-  font-weight: 600;
-}
-.card.selected {
-  outline: 3px solid #175b92;
-  outline-offset: 2px;
 }
