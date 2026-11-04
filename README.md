@@ -4,12 +4,16 @@ A small flight-booking website for comparing computer use, accessibility inspect
 
 With **Node 22+**, run `npm start` and open http://127.0.0.1:4173. No install is needed. `PORT` changes the port; the server binds IPv4 loopback only. `npm test` runs six behavior tests. No ticket or payment is real.
 
+## Formatting
+
+Run `npm install` once to get Prettier. In VS Code, install the recommended **Prettier - Code formatter** extension (`esbenp.prettier-vscode`, suggested by `.vscode/extensions.json`); `.vscode/settings.json` makes it the default formatter and formats supported files when you save. From the terminal, `npm run format` rewrites files and `npm run format:check` verifies them without changes. Options live in `.prettierrc.json`; ignores in `.prettierignore`.
+
 ## Pages and tools
 
-| Page | UI and valid WebMCP tools |
-| --- | --- |
-| `/` or `/index.html` | Search route/date, UI-only swap icon. `search_flights(from,to,date)` |
-| `/results.html` | Six fictional flights, filters and sorting. `filter_flights(max_price?,time_of_day?,max_stops?)`, `sort_flights(by,order)`, `get_flight_results()`. `clear_filters()` only with active filters; `select_flight(flight_id)` only with visible results, with those IDs as its enum. Selection stays here with a highlighted card and summary |
+| Page                 | UI and valid WebMCP tools                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/` or `/index.html` | Search route/date, UI-only swap icon. `search_flights(from,to,date)`                                                                                                                                                                                                                                                                       |
+| `/results.html`      | Six fictional flights, filters and sorting. `filter_flights(max_price?,time_of_day?,max_stops?)`, `sort_flights(by,order)`, `get_flight_results()`. `clear_filters()` only with active filters; `select_flight(flight_id)` only with visible results, with those IDs as its enum. Selection stays here with a highlighted card and summary |
 
 Filters replace the previous filters; omitted fields are cleared. Maximum price is in USD dollars, departure periods are morning (before 12), afternoon (12–17), evening (18 onward), and maximum stops is 0–2. Sort fields are `price`, `departure`, `duration`; order is `asc` or `desc`. Zero matches removes the selection tool. Read tools do not mutate booking state.
 
@@ -21,17 +25,17 @@ Tools are not listed on the page. Registration is replaced on state changes; old
 
 Based on the supplied DOM Probe reference. `?seed=example` deterministically generates flight values, default route/date, tokens and selection code; user edits to search fields remain ordinary inputs. `seed` and `key` survive page navigation. `?key=1` renders a table of planted values, their layers and locations, including the runtime/storage snapshots. Otherwise the answer table has no contents. This is an exposure test, not a secrets system.
 
-| Layer | Planted values and page/element |
-| --- | --- |
-| Visible text | Search route/date fields; results `#route`, flight cards and selected-flight summary: flight ID, route, date, departure time, duration, stops, price and seat count. Results `#selection-code` after selection |
-| Accessibility | Index `#swap`: icon-only button named by aria-label. Results arrow buttons: aria-label includes flight ID and price. Every page `#message`: aria-live status after actions and step arrivals |
-| DOM attributes/classes | Results cards and selected summary card: `data-flight-id`, `data-fare-class`, `data-seats-left`, seeded `flight-*` class |
-| Computed style | Cheapest flight's `.cheapest` card: seeded background colour and seeded `::after` fare cue via CSS custom properties. The cue is absent from DOM text (except an explicitly requested answer key) |
-| Hidden DOM / comments | Each results flight card: `.baggage-fee` text has `display:none`; HTML comment contains a seeded fare-rule token |
-| Page JavaScript | Every page: `window.__BOOKING_STATE__` snapshot refreshed after mutations |
-| Storage | Every page: seeded `localStorage` key `flight-draft-*` with the current snapshot; sessionStorage holds navigation state after the first action |
-| Console | Each step arrival and action logs the seeded `booking-{page}-*` token with its status |
-| Network | Search fetches `/api/flights?from=…&to=…&date=…&seed=…`; the local server returns seeded JSON. Results deliberately requests `/missing-*.json` and receives 404 |
+| Layer                  | Planted values and page/element                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Visible text           | Search route/date fields; results `#route`, flight cards and selected-flight summary: flight ID, route, date, departure time, duration, stops, price and seat count. Results `#selection-code` after selection |
+| Accessibility          | Index `#swap`: icon-only button named by aria-label. Results arrow buttons: aria-label includes flight ID and price. Every page `#message`: aria-live status after actions and step arrivals                   |
+| DOM attributes/classes | Results cards and selected summary card: `data-flight-id`, `data-fare-class`, `data-seats-left`, seeded `flight-*` class                                                                                       |
+| Computed style         | Cheapest flight's `.cheapest` card: seeded background colour and seeded `::after` fare cue via CSS custom properties. The cue is absent from DOM text (except an explicitly requested answer key)              |
+| Hidden DOM / comments  | Each results flight card: `.baggage-fee` text has `display:none`; HTML comment contains a seeded fare-rule token                                                                                               |
+| Page JavaScript        | Every page: `window.__BOOKING_STATE__` snapshot refreshed after mutations                                                                                                                                      |
+| Storage                | Every page: seeded `localStorage` key `flight-draft-*` with the current snapshot; sessionStorage holds navigation state after the first action                                                                 |
+| Console                | Each step arrival and action logs the seeded `booking-{page}-*` token with its status                                                                                                                          |
+| Network                | Search fetches `/api/flights?from=…&to=…&date=…&seed=…`; the local server returns seeded JSON. Results deliberately requests `/missing-*.json` and receives 404                                                |
 
 Flight-card cue colours and all other styling can also be inspected in the DOM/CSS. Hidden baggage text is excluded from the accessibility tree. The expected results 404 may appear as a console resource error.
 

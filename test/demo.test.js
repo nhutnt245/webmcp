@@ -4,10 +4,13 @@ import { createBooking, pageForState } from '../public/pages/booking-state.js';
 import { bookingTools } from '../public/pages/booking-tools.js';
 import { createToolRegistry } from '../public/shared/webmcp.js';
 import { createDemoServer } from '../scripts/server.mjs';
-const names = tools => tools.map(t => t.name).sort();
+const names = (tools) => tools.map((t) => t.name).sort();
 const search = { from: 'SFO', to: 'JFK', date: '2026-12-01' };
 const seed = 'test';
-const memory = () => { const data = new Map(); return { getItem: k => data.get(k), setItem: (k,v) => data.set(k,v) }; };
+const memory = () => {
+  const data = new Map();
+  return { getItem: (k) => data.get(k), setItem: (k, v) => data.set(k, v) };
+};
 test('two-page tools and selected flight persist without leaving results', () => {
   const storage = memory();
   let booking = createBooking({ seed, storage });
@@ -40,18 +43,30 @@ test('filters and sorting control visible results and selection schemas', () => 
   const booking = createBooking({ seed });
   booking.search(search);
   const initial = booking.getResults();
-  const prices = initial.map(f => f.price);
+  const prices = initial.map((f) => f.price);
   assert.equal(new Set(prices).size, 6);
   booking.filter({ max_price: prices[1] / 100 });
-  assert.deepEqual(booking.getResults().map(f => f.id), ['DM101', 'DM202']);
+  assert.deepEqual(
+    booking.getResults().map((f) => f.id),
+    ['DM101', 'DM202'],
+  );
   let tools = bookingTools('results', booking, {});
   assert.ok(names(tools).includes('clear_filters'));
-  assert.deepEqual(tools.find(t => t.name === 'select_flight').inputSchema.properties.flight_id.enum, ['DM101', 'DM202']);
+  assert.deepEqual(tools.find((t) => t.name === 'select_flight').inputSchema.properties.flight_id.enum, [
+    'DM101',
+    'DM202',
+  ]);
   assert.throws(() => booking.select({ flight_id: 'DM606' }));
   booking.sort({ by: 'price', order: 'desc' });
-  assert.deepEqual(booking.getResults().map(f => f.id), ['DM202', 'DM101']);
+  assert.deepEqual(
+    booking.getResults().map((f) => f.id),
+    ['DM202', 'DM101'],
+  );
   booking.filter({ time_of_day: 'morning', max_stops: 0 });
-  assert.deepEqual(booking.getResults().map(f => f.id), ['DM101']);
+  assert.deepEqual(
+    booking.getResults().map((f) => f.id),
+    ['DM101'],
+  );
   booking.filter({ max_price: 0 });
   assert.deepEqual(booking.getResults(), []);
   assert.ok(!names(bookingTools('results', booking, {})).includes('select_flight'));
@@ -61,8 +76,11 @@ test('filters and sorting control visible results and selection schemas', () => 
   for (const by of ['departure', 'duration']) {
     booking.sort({ by, order: 'asc' });
     const field = by === 'departure' ? 'time' : by;
-    const sorted = booking.getResults().map(f => f[field]);
-    assert.deepEqual(sorted, [...sorted].sort((a,b) => a < b ? -1 : a > b ? 1 : 0));
+    const sorted = booking.getResults().map((f) => f[field]);
+    assert.deepEqual(
+      sorted,
+      [...sorted].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+    );
   }
   assert.throws(() => booking.filter({ max_price: -1 }));
   assert.throws(() => booking.filter({ time_of_day: 'night' }));
@@ -77,7 +95,17 @@ test('seed changes and malformed sessions reset; invalid inputs and storage fail
   assert.equal(createBooking({ seed: 'other', storage }).state.stage, 'search');
   storage.setItem('flight_booking', '{');
   assert.equal(createBooking({ seed, storage }).state.stage, 'search');
-  const blocked = createBooking({ seed, storage: { getItem() { return null; }, setItem() { throw new Error('blocked'); } } });
+  const blocked = createBooking({
+    seed,
+    storage: {
+      getItem() {
+        return null;
+      },
+      setItem() {
+        throw new Error('blocked');
+      },
+    },
+  });
   assert.throws(() => blocked.search(search), /blocked/);
   assert.equal(blocked.state.stage, 'search');
 });
@@ -86,11 +114,13 @@ test('adapter replaces modern registrations, rejects stale calls, and cleans up 
   const view = new EventTarget();
   const currentDocument = {
     defaultView: view,
-    modelContext: { async registerTool(tool, { signal }) {
-      assert.equal(registered.has(tool.name), false);
-      registered.set(tool.name, tool);
-      signal.addEventListener('abort', () => registered.delete(tool.name));
-    } }
+    modelContext: {
+      async registerTool(tool, { signal }) {
+        assert.equal(registered.has(tool.name), false);
+        registered.set(tool.name, tool);
+        signal.addEventListener('abort', () => registered.delete(tool.name));
+      },
+    },
   };
   const registry = createToolRegistry({ currentDocument, currentNavigator: {} });
   await registry.replace([{ name: 'first', execute: () => 'one' }]);
@@ -105,20 +135,30 @@ test('adapter replaces modern registrations, rejects stale calls, and cleans up 
 test('legacy provideContext replaces the complete tool list', async () => {
   let tools = [];
   const view = new EventTarget();
-  const registry = createToolRegistry({ currentDocument: { defaultView: view }, currentNavigator: { modelContext: { provideContext(context) { tools = context.tools; } } } });
+  const registry = createToolRegistry({
+    currentDocument: { defaultView: view },
+    currentNavigator: {
+      modelContext: {
+        provideContext(context) {
+          tools = context.tools;
+        },
+      },
+    },
+  });
   await registry.replace([{ name: 'first', execute: () => true }]);
   await registry.replace([{ name: 'second', execute: () => true }]);
   assert.deepEqual(names(tools), ['second']);
   view.dispatchEvent(new Event('pagehide'));
   assert.deepEqual(tools, []);
 });
-test('server serves two pages and seeded mock JSON, rejects invalid searches and missing probes', async t => {
+test('server serves two pages and seeded mock JSON, rejects invalid searches and missing probes', async (t) => {
   const server = createDemoServer();
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => server.close(resolve)));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
   for (const path of ['/', '/results.html', '/pages/booking.js']) assert.equal((await fetch(base + path)).status, 200);
-  for (const path of ['/checkout.html', '/unknown.html', '/missing-seeded.json']) assert.equal((await fetch(base + path)).status, 404);
+  for (const path of ['/checkout.html', '/unknown.html', '/missing-seeded.json'])
+    assert.equal((await fetch(base + path)).status, 404);
   const url = base + '/api/flights?' + new URLSearchParams({ ...search, seed });
   const response = await fetch(url);
   assert.equal(response.status, 200);

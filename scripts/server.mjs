@@ -28,7 +28,10 @@ export function createDemoServer() {
         try {
           const search = validateSearch(Object.fromEntries(url.searchParams));
           payload = { search, flights: flightsFor(url.searchParams.get('seed') || 'demo', search) };
-        } catch (error) { status = 400; payload = { error: error.message }; }
+        } catch (error) {
+          status = 400;
+          payload = { error: error.message };
+        }
         res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(req.method === 'HEAD' ? undefined : JSON.stringify(payload));
         return;
@@ -38,7 +41,9 @@ export function createDemoServer() {
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (error) {
       const status = error instanceof URIError ? 400 : 404;
-      res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' }).end(status === 400 ? 'Bad path' : 'Not found');
+      res
+        .writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' })
+        .end(status === 400 ? 'Bad path' : 'Not found');
     }
   });
 }

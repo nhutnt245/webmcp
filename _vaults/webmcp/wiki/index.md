@@ -26,7 +26,7 @@ this wiki; session memory.
 - Current/legacy API registration: [public/shared/webmcp.js](../../../public/shared/webmcp.js):1.
 - Static server and mock flight endpoint: [scripts/server.mjs](../../../scripts/server.mjs):1.
 - Executable behavior tests: [test/demo.test.js](../../../test/demo.test.js):1.
-- Run commands: [package.json](../../../package.json):7.
+- Run commands: [package.json](../../../package.json):9.
 
 Notes use `title`, `description`, and `date` frontmatter; register each in its
 folder index, cross-link related notes, cite sources as `path:line`, and mark
