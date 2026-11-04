@@ -1,36 +1,35 @@
 ---
 title: Demo flights knowledge
-description: Entry point for the two-page flight demo and embedded exposure layers.
+description: Entry point for the WebMCP flight demo that shows the Declarative and Imperative APIs in one app.
 date: 2026-11-04
 ---
 
 # Demo flights
 
-Updated 2026-11-04. The app is a three-page flight flow with embedded exposure
-layers. Entry points: [public/index.html](../../../public/index.html):1,
-[public/results.html](../../../public/results.html):1.
+Updated 2026-11-04. A three-page flight demo (search, results, summary) for learning the WebMCP
+Declarative and Imperative APIs. The reading order is in [README.md](../../../README.md):1.
 
-Compile notes just in time. Authority order: live code in `public/`, `scripts/`
-and `test/`; upstream WebMCP references in [README.md](../../../README.md);
+Authority order: live code in `public/` and `server.js`; the three primary sources linked in the README;
 this wiki; session memory.
 
-| Folder | Entry | Purpose |
-| --- | --- | --- |
-| Root wiki | This index | Routes to authoritative behavior |
+| Folder    | Entry      | Purpose                                      |
+| --------- | ---------- | -------------------------------------------- |
+| Root wiki | This index | Routes to the code that decides the behavior |
 
-- Shared UI actions, the Lowest price card probes and navigation: [public/pages/booking.js](../../../public/pages/booking.js):1.
-- Session state, filtering and guards: [public/pages/booking-state.js](../../../public/pages/booking-state.js):1.
-- Selection navigates to a summary; the runtime/storage/console probes are single values on the results page only (Updated 2026-11-04): [public/pages/booking.js](../../../public/pages/booking.js):1.
-- Imperative tools (explicit objects, `registerTool` with AbortSignal, page vs state lifetime, `toolError`): [public/pages/imperative-tools.js](../../../public/pages/imperative-tools.js):1. Declarative tools are `toolname` attributes on the forms in [public/index.html](../../../public/index.html):1 and [public/results.html](../../../public/results.html):1, answered by `onSubmit` in [public/pages/booking.js](../../../public/pages/booking.js):1. Updated 2026-11-04.
-- Evals: [evals/evals.json](../../../evals/evals.json):1 (official `expectedCall` schema, nested ordered/unordered case), deterministic native run [scripts/evals-smoke.mjs](../../../scripts/evals-smoke.mjs):1, matcher and replay tests [test/evals.test.js](../../../test/evals.test.js):1. Agent accuracy runs need a model key and are not run in this repo. Updated 2026-11-04.
-- Navigation: `/` is always the editable search form (previous search prefills it) and a new search resets filters and selection; results and summary keep entry guards, and both link back through `#edit-search`: [pageAllowed](../../../public/pages/booking-state.js):1. Updated 2026-11-04.
-- Seeded flights and the one-per-layer `probes` constants (README "Access examples" lists the ten): [public/shared/flights.js](../../../public/shared/flights.js):1.
-- Only `document.modelContext` is used; no `navigator.modelContext`, `provideContext` or polyfill. Filter form submissions merge into the shown filters because the browser fills only supplied fields. Updated 2026-11-04.
-- Static server and mock flight endpoint: [scripts/server.mjs](../../../scripts/server.mjs):1.
-- Executable behavior tests: [test/demo.test.js](../../../test/demo.test.js):1.
-- Run commands: [package.json](../../../package.json):9.
+- Declarative tools are `toolname` attributes on the forms in
+  [public/index.html](../../../public/index.html):1 and [public/results.html](../../../public/results.html):1;
+  their submit handlers are in [public/js/search-page.js](../../../public/js/search-page.js):1 and
+  [public/js/results-page.js](../../../public/js/results-page.js):1.
+- Imperative tools are objects passed to `document.modelContext.registerTool` in
+  [public/js/imperative-tools.js](../../../public/js/imperative-tools.js):1. Each tool name has exactly one owner.
+- State lives in the page URL, not in storage:
+  [public/js/page-url.js](../../../public/js/page-url.js):1.
+- Errors reach the agent only when returned as a value (`Promise.resolve({ error })` for `respondWith`, a returned
+  object from `execute`); a rejected promise or a thrown error gives the agent only "Tool execution failed"
+  (observed in Chrome 158 with `--enable-features=WebMCP`).
+- The app has no tests, evals or probes by design. Verify changes in a WebMCP-enabled Chrome with
+  `await document.modelContext.getTools()` and `executeTool`.
 
-Notes use `title`, `description`, and `date` frontmatter; register each in its
-folder index, cross-link related notes, cite sources as `path:line`, and mark
-unverified claims `UNVERIFIED`. Carry an `Updated YYYY-MM-DD` marker.
+Notes use `title`, `description`, and `date` frontmatter; register each in its folder index, cross-link related
+notes, cite sources as `path:line`, and mark unverified claims `UNVERIFIED`. Carry an `Updated YYYY-MM-DD` marker.
 Only `wiki/` is tracked; never link local raw notes.

@@ -6,46 +6,72 @@
     <title>Book a flight · Demo flights</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/styles.css" />
-    <script type="module" src="/pages/booking.js"></script>
+    <script type="module" src="/js/search-page.js"></script>
   </head>
-  <body data-page="index">
-    <header><strong>Demo flights</strong><span>Search → Choose</span></header>
+  <body>
+    <header>
+      <strong>Demo flights</strong>
+      <span>Search → Choose → Summary</span>
+    </header>
+
     <main>
       <h1>Book a flight</h1>
+
+      <!--
+        WebMCP DECLARATIVE API: this form is a tool.
+        toolname + tooldescription turn the form into the tool "search_flights".
+        Each field becomes a tool parameter. Its "name" is the parameter name, its "required"
+        and options become the schema, and toolparamdescription explains it to the agent.
+        toolautosubmit lets the agent submit without a human clicking the button.
+        The submit handler is in /js/search-page.js.
+      -->
       <form
         id="search-form"
         toolname="search_flights"
-        tooldescription="Search fictional flights between two different airports on a travel date. A successful search opens the results page and replaces any earlier filters and selection."
+        tooldescription="Search fictional flights between two different airports on a travel date. A successful search opens the results page."
         toolautosubmit
       >
-        <label
-          >From<select name="from" required toolparamdescription="Departure airport code: SFO, LAX or JFK.">
-            <option>SFO</option>
-            <option>LAX</option>
-            <option>JFK</option>
-          </select></label
-        ><button id="swap" type="button" aria-label="Swap departure and arrival airports">⇄</button
-        ><label
-          >To<select
+        <div class="field">
+          <label for="from">From</label>
+          <select id="from" name="from" required toolparamdescription="Departure airport code: SFO, LAX or JFK.">
+            <option value="SFO">SFO · San Francisco</option>
+            <option value="LAX">LAX · Los Angeles</option>
+            <option value="JFK">JFK · New York</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="to">To</label>
+          <select
+            id="to"
             name="to"
             required
             toolparamdescription="Arrival airport code: SFO, LAX or JFK. Must differ from the departure airport."
           >
-            <option>JFK</option>
-            <option>LAX</option>
-            <option>SFO</option>
-          </select></label
-        ><label
-          >Travel date<input
+            <option value="SFO">SFO · San Francisco</option>
+            <option value="LAX">LAX · Los Angeles</option>
+            <option value="JFK" selected>JFK · New York</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="date">Travel date</label>
+          <input
+            id="date"
             name="date"
             type="date"
             value="2026-12-01"
             required
-            toolparamdescription="Travel date in YYYY-MM-DD format." /></label
-        ><button type="submit">Search flights</button>
+            toolparamdescription="Travel date in YYYY-MM-DD format."
+          />
+        </div>
+
+        <button type="submit">Search flights</button>
       </form>
+
       <p id="message" role="status" aria-live="polite"></p>
     </main>
+
     <footer>Local demo · Fictional flights</footer>
   </body>
 </html>

@@ -1,21 +1,18 @@
 {
-  "name": "webmcp-probe-demo",
+  "name": "webmcp-flight-demo",
   "version": "1.0.0",
+  "description": "A small flight-booking demo that shows the WebMCP Declarative and Imperative APIs side by side.",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "start": "node scripts/server.mjs",
-    "test": "node --test",
+    "start": "node server.js",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "evals:smoke": "node scripts/evals-smoke.mjs"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "3.9.10",
-    "puppeteer-core": "25.16.0",
-    "webmcp-evals": "0.0.4"
+    "prettier": "3.9.10"
   }
 }
