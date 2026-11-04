@@ -1,0 +1,110 @@
+[
+  {
+    "name": "Simple search",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Find flights from Los Angeles to San Francisco on December 5, 2026."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "LAX", "to": "SFO", "date": "2026-12-05" }
+      }
+    ]
+  },
+  {
+    "name": "Quickest flight with at most one stop (nested: ordered, unordered, ordered)",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I'm flying from San Francisco to New York on December 12, 2026. I will not take more than one stop. Show the options ordered by shortest duration and book the quickest one."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "SFO", "to": "JFK", "date": "2026-12-12" }
+      },
+      {
+        "unordered": [
+          { "functionName": "filter_flights", "arguments": { "max_stops": "1" } },
+          { "functionName": "sort_flights", "arguments": { "by": "duration", "order": "asc" } }
+        ]
+      },
+      {
+        "ordered": [
+          { "functionName": "get_flight_results", "arguments": {} },
+          { "functionName": "select_flight", "arguments": { "flight_id": "DM404" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "No match, then recover without selecting",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Search San Francisco to New York on December 12, 2026 for a nonstop evening flight. If nothing matches, remove the filters and show me what is available. Do not pick a flight yet."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "SFO", "to": "JFK", "date": "2026-12-12" }
+      },
+      {
+        "functionName": "filter_flights",
+        "arguments": { "time_of_day": "evening", "max_stops": "0" }
+      },
+      { "functionName": "get_flight_results", "arguments": {}, "optional": true },
+      { "functionName": "clear_filters", "arguments": {} },
+      { "functionName": "get_flight_results", "arguments": {} }
+    ]
+  },
+  {
+    "name": "Inspection only, no selection",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I'm just browsing. Search San Francisco to New York on December 12, 2026 and list the flights from earliest to latest departure. Don't select anything."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "SFO", "to": "JFK", "date": "2026-12-12" }
+      },
+      { "functionName": "sort_flights", "arguments": { "by": "departure", "order": "asc" } },
+      { "functionName": "get_flight_results", "arguments": {} }
+    ]
+  },
+  {
+    "name": "Select, then change the search on another page",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Search San Francisco to New York on December 12, 2026 and pick the cheapest flight. Then I changed my mind: look at Los Angeles to San Francisco on December 19, 2026 instead."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "SFO", "to": "JFK", "date": "2026-12-12" }
+      },
+      { "functionName": "get_flight_results", "arguments": {}, "optional": true },
+      { "functionName": "select_flight", "arguments": { "flight_id": "DM101" } },
+      { "functionName": "edit_search", "arguments": {} },
+      {
+        "functionName": "search_flights",
+        "arguments": { "from": "LAX", "to": "SFO", "date": "2026-12-19" }
+      }
+    ]
+  }
+]
