@@ -1,182 +1,46 @@
-# One task, three ways
+# Demo flights
 
-A small, runnable comparison of computer use, Playwright, and WebMCP. Every driver
-opens the **same todo page**, adds **Book demo flight**, and marks it complete.
-The expected visible result is **1 of 1 complete**. State lives only in memory;
-every new page starts empty. This is a mechanism demo, not a performance benchmark.
+A small flight-booking website for comparing computer use, accessibility inspection, DOM access, page JavaScript and WebMCP. Plain HTML, CSS and ES modules; no dependencies, build, drivers, API keys or external services.
 
-| Approach | What the driver sees / does | Best for | Weakness |
-| --- | --- | --- | --- |
-| [Computer use](computer-use/run.mjs) | Claude sees screenshots and chooses mouse coordinates and keystrokes | Visual tasks, including UIs without automation hooks | Slower, paid model calls; visual mistakes and layout sensitivity |
-| [Playwright](playwright/run.mjs) | A deterministic script locates labeled DOM elements, fills, clicks, checks | Repeatable web flows and tests | Needs page structure; this example follows a fixed recipe rather than planning |
-| [WebMCP](webmcp/register.js) | The page publishes named tools with schemas; the client calls them | Structured agent actions designed by the site | Requires site cooperation and experimental browser/agent support |
+With **Node 22+**, run `npm start` and open http://127.0.0.1:4173. No install is needed. `PORT` changes the port; the server binds IPv4 loopback only. `npm test` runs six behavior tests. Use made-up passenger details: no ticket or payment is real.
 
-Computer use can work across desktop apps in a full desktop environment. **This
-example controls only a Chromium content viewport**. Playwright supplies its
-screenshot/mouse/keyboard transport; no DOM queries or accessibility data enter
-the model loop. The separate Playwright driver intentionally uses DOM locators.
-The WebMCP driver is a deterministic tool consumer, not an LLM planner.
+## Pages and tools
 
-## Setup
+| Page | UI and valid WebMCP tools |
+| --- | --- |
+| `/` or `/index.html` | Search route/date, UI-only swap icon. `search_flights(from,to,date)` |
+| `/results.html` | Six fictional flights, filters and sorting. `filter_flights(max_price?,time_of_day?,max_stops?)`, `sort_flights(by,order)`, `get_flight_results()`. `clear_filters()` only with active filters; `select_flight(flight_id)` only with visible results, with those IDs as its enum |
+| `/checkout.html`, before confirmation | Selected flight, passenger form. `set_passenger_info(name,email,phone?)`, `get_booking_info()`. `confirm_booking()` appears once passenger details are saved |
+| `/checkout.html`, confirmed | Selected flight, passenger details and confirmation code. Only `get_booking_info()` and `start_new_booking()` |
 
-Requires Node.js 22+ and npm. From the repository root:
+Filters replace the previous filters; omitted fields are cleared. Maximum price is in USD dollars, departure periods are morning (before 12), afternoon (12–17), evening (18 onward), and maximum stops is 0–2. Sort fields are `price`, `departure`, `duration`; order is `asc` or `desc`. Zero matches removes the selection tool. Read tools do not mutate booking state.
 
-```sh
-npm ci
-npx playwright install chromium
-# On Linux, if browser system libraries are missing:
-# npx playwright install --with-deps chromium
-npm start
-```
+UI and tools share action functions. Booking state persists across pages/reloads in `sessionStorage.flight_booking`, scoped to the seed. Direct visits to the wrong step redirect to the valid step. A different seed starts a fresh booking. Session storage is required for navigation; an unavailable or unwritable session store reports an error instead of navigating. The localStorage draft is an optional inspection copy, not a recovery source. There is no cross-tab synchronization.
 
-Leave the server running, then open <http://127.0.0.1:3000> or run a driver in a
-second terminal. The server binds only to loopback and serves a fixed list of
-demo assets. Stop it with Ctrl+C. No build, database, CI, or hosting is needed.
+Tools are not listed on the page. Registration is replaced on state changes; old callbacks reject as stale, pagehide removes registrations, and back/forward cache restores reload. Unsupported APIs are a silent no-op and ordinary controls still work.
 
-## 1. Computer use (Claude API)
+## Layers inside the flow
 
-```sh
-export ANTHROPIC_API_KEY='your-key'
-# Optional; must support computer_20251124:
-export ANTHROPIC_MODEL='claude-sonnet-4-6'
-npm run demo:computer
-```
+Based on the supplied DOM Probe reference. `?seed=example` deterministically generates flight values, default route/date, tokens and confirmation code; user edits to search/passenger fields remain ordinary inputs. `seed` and `key` survive page navigation. `?key=1` renders a table of planted values, their layers and locations, including the runtime/storage snapshots. Otherwise the answer table has no contents. This is an exposure test, not a secrets system.
 
-The loop sends a screenshot, receives Claude `computer` tool calls, executes
-pixel/keyboard actions, returns screenshots as `tool_result` blocks, and repeats.
-It uses the `computer_20251124` tool and `computer-use-2025-11-24` beta header.
-The API is paid. Defaults to 20 requests maximum; `MAX_TURNS` accepts 1–100.
-Full conversation history (including screenshots) is resent, so cost grows
-with turns. Each request has a two-minute timeout. Supported actions are in
-[actions.mjs](computer-use/actions.mjs); unsupported actions return tool errors.
-Zoom is not enabled. The final screenshot is saved to
-`artifacts/computer-final.png`. A model completion is reported as a claim, not an
-automated DOM verification. Inspect that screenshot to confirm success.
+| Layer | Planted values and page/element |
+| --- | --- |
+| Visible text | Search route/date fields; results `#route` and flight cards; selected flight on checkout: flight ID, route, date, departure time, duration, stops, price and seat count. Checkout `#confirmation-code` after confirmation |
+| Accessibility | Index `#swap`: icon-only button named by aria-label. Results arrow buttons: aria-label includes flight ID and price. Every page `#message`: aria-live status after actions and step arrivals |
+| DOM attributes/classes | Results cards and checkout selected card: `data-flight-id`, `data-fare-class`, `data-seats-left`, seeded `flight-*` class |
+| Computed style | Cheapest flight's `.cheapest` card: seeded background colour and seeded `::after` fare cue via CSS custom properties. The cue is absent from DOM text (except an explicitly requested answer key) |
+| Hidden DOM / comments | Each results/checkout flight card: `.baggage-fee` text has `display:none`; HTML comment contains a seeded fare-rule token |
+| Page JavaScript | Every page: `window.__BOOKING_STATE__` snapshot refreshed after mutations |
+| Storage | Every page: seeded `localStorage` key `flight-draft-*` with the current snapshot; sessionStorage holds navigation state after the first action |
+| Console | Each step arrival and action logs the seeded `booking-{page}-*` token with its status |
+| Network | Search fetches `/api/flights?from=…&to=…&date=…&seed=…`; the local server returns seeded JSON. Checkout deliberately requests `/missing-*.json` and receives 404 |
 
-See [Anthropic's computer-use documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
-for current model/tool compatibility. No API key is included. `.env` files are
-ignored; the scripts read shell variables, not `.env` files automatically.
+Flight-card cue colours and all other styling can also be inspected in the DOM/CSS. Hidden baggage text is excluded from the accessibility tree. The expected checkout 404 may appear as a console resource error.
 
-## 2. Playwright (DOM)
+## WebMCP API and verification
 
-This is a **Playwright library runner**, not Playwright Test: it launches
-Chromium directly and executes one fixed todo recipe. It does not discover tests
-or infer a plan. The flow adds and checks a todo, asserts the resulting state,
-and saves a Playwright trace to `artifacts/playwright-trace.zip`.
+Verified on 2026-11-04 against the [2 November 2026 draft](https://webmachinelearning.github.io/webmcp/): `document.modelContext.registerTool(tool,{signal})` with `name`, `description`, `inputSchema`, `execute`, and abort-based removal. That draft does not define `provideContext` or `unregisterTool`. The adapter also supports the [older navigator proposal](https://webmachinelearning.github.io/webmcp/docs/proposal.html): `navigator.modelContext.registerTool`/`unregisterTool`, or `provideContext({tools})` replacement. It prefers the document API; no fake native API or polyfill is installed. These remain evolving drafts.
 
-Start the demo server in one terminal:
+Tests cover page/state tool sets, session persistence, filters, sort, selection guards, confirmation, invalid input, storage errors, adapter cleanup and server responses. A throwaway Chromium 156 script outside this repo verifies native discovery/invocation, the UI flow, filter-dependent schemas, reloads, seeded layers, answer-key visibility, expected requests, unsupported API controls and narrow layouts. External browser-agent invocation and permission mediation are not verified. The legacy API is tested with boundary mocks, not a legacy browser.
 
-```sh
-npm start
-```
-
-Run the flow in a second terminal (headless unless `HEADED=1`):
-
-```sh
-npm run demo:playwright
-```
-
-Open the saved trace with Playwright's native trace viewer:
-
-```sh
-npx playwright show-trace artifacts/playwright-trace.zip
-```
-
-Windows PowerShell equivalents:
-
-```powershell
-npm start
-# In a second PowerShell terminal:
-npm run demo:playwright
-npx playwright show-trace artifacts/playwright-trace.zip
-```
-
-The runner uses accessible labels and roles to add and check the todo, then
-asserts the checkbox and summary. No API key, model, or browser feature flag is
-required. A failure exits nonzero.
-
-## 3. WebMCP (structured tools)
-
-```sh
-npm run demo:webmcp
-```
-
-Works in ordinary Chromium via the clearly labeled **local structured-tool
-fallback**. The page exposes `add_todo`, `complete_todo`, and `list_todos` with
-JSON schemas and runtime argument validation. UI and tools share the same state
-and rendering. The runner discovers metadata and calls tools without selectors
-for actions; it uses Playwright only to transport JavaScript and verify the UI.
-The fallback is a small in-page registry (`window.todoTools`), **not a full
-WebMCP polyfill**, MCP server, or bridge to an external browser agent. It does
-not make a browser agent discover these tools automatically.
-
-For native registration, use an experimental Chrome build exposing WebMCP,
-enable `chrome://flags/#enable-webmcp-testing`, relaunch, and visit the localhost
-page. Native WebMCP needs a secure context (localhost is suitable for development).
-The page feature-detects `document.modelContext.registerTool`, supports older
-`navigator.modelContext` implementations, and reports the selected registration
-mode below the todo list. A compatible browser agent/extension can discover the
-registered tools out of band; merely opening the page does not launch an agent.
-
-The optional native consumer run is:
-
-```sh
-npm run demo:webmcp -- --native
-```
-
-This launches bundled Chromium with `--enable-features=WebMCPTesting` and requires
-native `getTools` / `executeTool`; it **fails explicitly** if those APIs are
-unavailable. It does not silently claim native success using the fallback.
-Bundled Chromium may lag the experimental APIs; use the local fallback for the
-portable demo. Registration and consumer API shapes can change as the proposal
-evolves. Current [Chrome imperative API guidance](https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools)
-uses `document.modelContext`; older examples use `navigator.modelContext`.
-
-For a manual fallback call, run this in the page's DevTools console:
-
-```js
-await window.demoReady;
-window.todoTools.list();
-const { todo } = await window.todoTools.call('add_todo', { title: 'Book demo flight' });
-await window.todoTools.call('complete_todo', { id: todo.id, completed: true });
-await window.todoTools.call('list_todos');
-```
-
-## Environment and verification
-
-| Variable | Required? | Default / purpose |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | Computer use only | Anthropic key; never commit it |
-| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-6` |
-| `MAX_TURNS` | No | `20`; bounded computer-use requests |
-| `DEMO_URL` | No | `http://127.0.0.1:3000`; all drivers |
-| `HEADED` | No | Set to `1` to display a driver's browser |
-| `PORT` | No | `3000`; server only |
-| `CHROMIUM_EXECUTABLE_PATH` | No | Use an existing Chrome/Chromium binary instead of the bundled download |
-
-```sh
-npm test
-```
-
-Starts an ephemeral loopback server, runs the DOM and fallback drivers, and
-checks invalid tool arguments, safe todo text rendering, reset, and server asset
-boundaries. It requires installed Chromium but no key. Tests close their server
-and browsers. See verification results below for what was actually run.
-
-Verified locally on 2026-11-02 with Node 24 and an existing Chromium build 1208:
-
-```sh
-CHROMIUM_EXECUTABLE_PATH=/absolute/path/to/chrome npm test
-```
-
-- Passed the Playwright DOM flow with a trace saved during its normal run, the
-  local structured-tool flow, page/reset and invalid-input checks, and
-  screenshot/mouse/keyboard adapter checks.
-- Native `--native` was attempted and exited with the documented unavailable-API
-  error on this browser. Native tool discovery/execution and external agent
-  integration were **not verified**.
-- The Claude API loop was **not run**; it needs a paid API key and compatible
-  model access. Only its local action adapter was executed without a key.
-- A fresh bundled browser download was not completed in this environment; the
-  existing-browser override was used. Other machines can use the normal
-  `npx playwright install chromium` setup above.
+Implementation pointers: `public/pages/booking.js` owns shared page actions/rendering, `booking-state.js` owns state, `booking-tools.js` declares tools by page/state, `public/shared/flights.js` generates seeded data, and `scripts/server.mjs` serves `public/` plus the mock endpoint.

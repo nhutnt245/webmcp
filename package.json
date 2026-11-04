@@ -1,18 +1,8 @@
 {
-  "name": "browser-agent-three-ways",
+  "name": "webmcp-probe-demo",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "scripts": {
-    "start": "node scripts/server.mjs",
-    "demo:playwright": "node playwright/run.mjs",
-    "demo:webmcp": "node webmcp/run.mjs",
-    "demo:computer": "node computer-use/run.mjs",
-    "test": "node scripts/verify.mjs"
-  },
-  "dependencies": {
-    "playwright": "1.64.1"
-  }
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node scripts/server.mjs", "test": "node --test" }
 }
