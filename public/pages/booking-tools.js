@@ -2,7 +2,7 @@ import { tool } from '../shared/webmcp.js';
 import { airports, pageForState } from './booking-state.js';
 export function bookingTools(page, booking, actions) {
   const state = booking.state;
-  if (pageForState(state) !== page) return [];
+  if (page !== 'index' && pageForState(state) !== page) return [];
   const simple = (name, description, execute) => tool(name, description, {}, [], execute);
   if (page === 'index')
     return [

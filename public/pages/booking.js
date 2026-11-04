@@ -1,7 +1,7 @@
 import { element, money } from '../shared/ui.js';
 import { createToolRegistry } from '../shared/webmcp.js';
 import { probeValues, hash, airports } from '../shared/flights.js';
-import { createBooking, pageForState } from './booking-state.js';
+import { createBooking, pageAllowed, pageForState } from './booking-state.js';
 import { bookingTools } from './booking-tools.js';
 const params = new URLSearchParams(location.search);
 const seed = params.get('seed') || 'demo';
@@ -17,13 +17,12 @@ const booking = createBooking({ seed, storage });
 const registry = createToolRegistry();
 const message = document.querySelector('#message');
 const urlFor = (target) => {
-  const url = new URL(`/${target}.html`, location.origin);
+  const url = new URL(target === 'index' ? '/' : `/${target}.html`, location.origin);
   url.searchParams.set('seed', seed);
   if (params.get('key') === '1') url.searchParams.set('key', '1');
   return url;
 };
-const allowedPage = page === 'summary' ? Boolean(booking.state.selected) : pageForState(booking.state) === page;
-if (!allowedPage) {
+if (!pageAllowed(page, booking.state)) {
   location.replace(urlFor(pageForState(booking.state)));
 } else {
   const status = (text) => {
@@ -207,6 +206,7 @@ if (!allowedPage) {
   }
   function render() {
     const state = booking.state;
+    for (const link of document.querySelectorAll('#edit-search')) link.href = urlFor('index');
     if (page === 'results') {
       document.querySelector('#route').textContent =
         `${state.search.from} → ${state.search.to} · ${state.search.date} · ${state.visibleFlights.length} flights`;
@@ -234,9 +234,10 @@ if (!allowedPage) {
   if (page === 'index') {
     const form = document.querySelector('#search-form');
     const n = hash(seed);
-    form.elements.from.value = airports[n % 3];
-    form.elements.to.value = airports[(n + 1) % 3];
-    form.elements.date.value = `2026-12-${String(1 + (n % 28)).padStart(2, '0')}`;
+    const previous = booking.state.search;
+    form.elements.from.value = previous?.from ?? airports[n % 3];
+    form.elements.to.value = previous?.to ?? airports[(n + 1) % 3];
+    form.elements.date.value = previous?.date ?? `2026-12-${String(1 + (n % 28)).padStart(2, '0')}`;
   }
   publish();
   status(

@@ -22,6 +22,7 @@ this wiki; session memory.
 - Session state, filtering and guards: [public/pages/booking-state.js](../../../public/pages/booking-state.js):1.
 - Selection navigates to a summary, with live status, runtime and draft snapshots: [public/pages/booking.js](../../../public/pages/booking.js):1.
 - Per-page/state tools: [public/pages/booking-tools.js](../../../public/pages/booking-tools.js):1.
+- Navigation: `/` is always the editable search form (previous search prefills it) and a new search resets filters and selection; results and summary keep entry guards, and both link back through `#edit-search`: [pageAllowed](../../../public/pages/booking-state.js):1. Updated 2026-11-04.
 - Seeded data: [public/shared/flights.js](../../../public/shared/flights.js):1.
 - Current/legacy API registration: [public/shared/webmcp.js](../../../public/shared/webmcp.js):1.
 - Static server and mock flight endpoint: [scripts/server.mjs](../../../scripts/server.mjs):1.
