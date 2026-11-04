@@ -21,6 +21,14 @@ function validateFilters(input) {
   }
   return filters;
 }
+// Filter form fields arrive as strings; an empty field means that filter is not set.
+export function filtersFromFields(fields) {
+  return Object.fromEntries(
+    Object.entries(fields)
+      .filter(([, value]) => value !== '')
+      .map(([name, value]) => [name, name === 'time_of_day' ? value : Number(value)]),
+  );
+}
 function validateSort({ by, order }) {
   if (!['price', 'departure', 'duration'].includes(by) || !['asc', 'desc'].includes(order))
     throw new Error('Choose a listed sort and order.');
