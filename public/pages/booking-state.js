@@ -79,7 +79,7 @@ export function createBooking({ seed = 'demo', storage } = {}) {
       });
     },
     search(input) {
-      requireStage('search');
+      // A new search is always allowed; it resets filters and selection from the initial state.
       return save({ ...initial(), stage: 'results', search: validateSearch(input) });
     },
     filter(input) {
@@ -109,4 +109,10 @@ export function createBooking({ seed = 'demo', storage } = {}) {
 }
 export function pageForState(state) {
   return { search: 'index', results: 'results' }[state.stage];
+}
+export function pageAllowed(page, state) {
+  // The search form stays reachable at any stage; later pages need the state they render.
+  if (page === 'index') return true;
+  if (page === 'summary') return Boolean(state.selected);
+  return pageForState(state) === page;
 }

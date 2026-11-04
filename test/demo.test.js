@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBooking, pageForState } from '../public/pages/booking-state.js';
+import { createBooking, pageAllowed, pageForState } from '../public/pages/booking-state.js';
 import { bookingTools } from '../public/pages/booking-tools.js';
 import { createToolRegistry } from '../public/shared/webmcp.js';
 import { createDemoServer } from '../scripts/server.mjs';
@@ -38,6 +38,46 @@ test('results tools and selected flight persist in session', () => {
   booking.clearFilters();
   booking.select({ flight_id: 'DM202' });
   assert.equal(createBooking({ seed, storage }).state.selected.id, 'DM202');
+});
+test('search form stays reachable after results and selection; a new search resets them', () => {
+  const storage = memory();
+  let booking = createBooking({ seed, storage });
+  booking.search(search);
+  booking.filter({ max_price: 1000 });
+  booking.sort({ by: 'duration', order: 'desc' });
+  booking.select({ flight_id: booking.getResults()[0].id });
+  // A fresh page load (reload or explicit visit to /) restores the persisted state.
+  booking = createBooking({ seed, storage });
+  assert.equal(booking.state.stage, 'results');
+  assert.equal(pageAllowed('index', booking.state), true);
+  assert.deepEqual(booking.state.search, search, 'previous search is available to prefill the form');
+  assert.deepEqual(names(bookingTools('index', booking, {})), ['search_flights']);
+  // Without a new search, results and summary remain reachable.
+  assert.equal(pageAllowed('results', booking.state), true);
+  assert.equal(pageAllowed('summary', booking.state), true);
+  // Editing origin and destination goes through the normal search and shows the new route only.
+  const edited = { from: 'LAX', to: 'SFO', date: '2026-12-05' };
+  booking.search(edited);
+  assert.equal(booking.state.stage, 'results');
+  assert.deepEqual(booking.state.search, edited);
+  assert.deepEqual(booking.state.filters, {});
+  assert.deepEqual(booking.state.sort, { by: 'price', order: 'asc' });
+  assert.equal(booking.state.selected, null);
+  assert.equal(pageAllowed('summary', booking.state), false);
+  assert.ok(booking.state.visibleFlights.every((f) => f.from === 'LAX' && f.to === 'SFO'));
+  const reloaded = createBooking({ seed, storage });
+  assert.deepEqual(reloaded.state.search, edited);
+  assert.equal(reloaded.state.selected, null);
+});
+test('results and summary entry guards still require their state', () => {
+  const booking = createBooking({ seed });
+  assert.equal(pageAllowed('index', booking.state), true);
+  assert.equal(pageAllowed('results', booking.state), false);
+  assert.equal(pageAllowed('summary', booking.state), false);
+  booking.search(search);
+  assert.equal(pageAllowed('results', booking.state), true);
+  assert.equal(pageAllowed('summary', booking.state), false);
+  assert.deepEqual(bookingTools('summary', booking, {}), []);
 });
 test('filters and sorting control visible results and selection schemas', () => {
   const booking = createBooking({ seed });
