@@ -6,7 +6,7 @@
 const gone = 'This tool is no longer available on this page. Read the current tool list again.';
 // A failure is returned as a result so the agent reads the real reason (errors thrown or rejected inside a
 // tool only reach it as a generic failure). { content: [{ type: 'text', text }], isError: true } is the shape
-// the webmcp-evals tool registry reads as a failed call.
+// what WebMCP clients read as a failed call.
 export const toolError = (error) => ({ content: [{ type: 'text', text: error.message }], isError: true });
 // Aborting a signal removes the tool but not calls already in flight, so every execute checks it.
 const whileRegistered = (signal, run) => async (input) => {

@@ -5,7 +5,7 @@ import { createImperativeTools } from '../public/pages/imperative-tools.js';
 
 // TEST DOUBLE, not native WebMCP: a stand-in for document.modelContext that follows the documented
 // registerTool(tool, { signal }) contract (duplicate names reject, abort unregisters). Native
-// behavior is checked by `npm run evals:smoke` and the live-browser notes in the README.
+// behavior is covered by the live-browser notes in the README.
 function fakeModelContext() {
   const registered = new Map();
   let registrations = 0;
