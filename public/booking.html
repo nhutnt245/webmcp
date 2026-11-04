@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ticket booking · Browser reach lab</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><script type="module" src="/pages/booking.js"></script></head>
+<body><header><strong>Browser reach lab</strong><nav aria-label="Main"><a href="/index.html">Home / probes</a><a href="/booking.html">Tickets</a><a href="/shop.html">Shopping</a></nav></header>
+<main><h1>Ticket booking</h1><p>Fictional flights for one passenger. Use made-up details; no ticket or payment is created. Booking resets on reload.</p>
+<p id="stage" role="status"></p><p id="message" role="alert"></p>
+<form id="search-form" class="card"><h2>1. Search</h2><div class="grid">
+<label>From<select name="from"><option>SFO</option><option>LAX</option><option>JFK</option></select></label>
+<label>To<select name="to"><option>LAX</option><option>SFO</option><option>JFK</option></select></label>
+<label>Travel date<input name="date" type="date" value="2026-12-01" required></label></div><button>Search flights</button></form>
+<div id="results" class="grid" hidden></div><p id="selection" hidden></p>
+<form id="passenger-form" class="card" hidden><h2>2. Passenger</h2><label>Name<input name="name" required maxlength="100" autocomplete="off"></label><label>Email<input name="email" type="email" maxlength="254" required autocomplete="off"></label><button>Review booking</button></form>
+<section id="review" hidden><h2>3. Review and confirm</h2><p id="passenger-summary"></p><p>Check the selected flight and passenger above.</p><button id="confirm" type="button">Confirm demo booking</button></section>
+<section id="confirmation" hidden><h2>Booking confirmed</h2><p id="confirmation-code"></p><p>No real reservation was made.</p></section>
+<button id="reset" class="secondary" type="button">Start over</button>
+<aside aria-labelledby="tools-heading"><h2 id="tools-heading">Page tools</h2><p id="tool-status" role="status">Detecting WebMCP…</p><ul id="tool-list"></ul></aside>
+</main><footer>Local demo · No external services · All prices and records are fictional</footer></body></html>

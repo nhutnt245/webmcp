@@ -1,8 +1,4 @@
 node_modules/
-.env
-.env.*
-!.env.example
-artifacts/
 # webmcp knowledge vault: track only the compiled wiki subtree.
 _vaults/*
 !_vaults/webmcp
