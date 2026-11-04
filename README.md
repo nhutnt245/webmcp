@@ -1,56 +1,46 @@
-# Browser reach lab
+# Demo flights
 
-A basic local website for comparing computer use, browser inspection and WebMCP. No drivers, framework, build, API keys or external services.
+A small flight-booking website for comparing computer use, accessibility inspection, DOM access, page JavaScript and WebMCP. Plain HTML, CSS and ES modules; no dependencies, build, drivers, API keys or external services.
 
-Run with **Node 22+**: `npm start`, then open http://127.0.0.1:4173. No install is necessary (there are no dependencies). Set `PORT` to change the port; the server always binds IPv4 loopback. `npm test` runs six light behavior tests.
+With **Node 22+**, run `npm start` and open http://127.0.0.1:4173. No install is needed. `PORT` changes the port; the server binds IPv4 loopback only. `npm test` runs six behavior tests. Use made-up passenger details: no ticket or payment is real.
 
-## Pages
+## Pages and tools
 
-- `/` or `/index.html`: seeded exposure probes.
-- `/booking.html`: search fictional flights, select one, enter one passenger, review and confirm. State lasts for the page visit; start over resets it. Any valid calendar date is accepted.
-- `/shop.html`: browse three products, add/remove cart lines and check out with a demo recipient/address. Only the cart persists in `localStorage.demo_cart`; receipts last for the page visit. Storage failures fall back to memory. No cross-tab synchronization.
-
-Use made-up passenger and delivery details. Nothing is purchased or booked.
-
-## Probes
-
-Based on the supplied DOM Probe reference. `?seed=example` deterministically changes values (default: `demo`). Add `&key=1` to render the answer table, absent from the DOM otherwise. Navigation preserves these query parameters. The key is a tester convenience, not a security boundary; generation code and runtime are inspectable.
-
-| Exposure | Location / action |
+| Page | UI and valid WebMCP tools |
 | --- | --- |
-| Visible text | Order reference (`#reference`) |
-| Accessibility name only on screen | Icon button `#dismiss`, named by `aria-label` |
-| DOM attributes | `#swatch[data-batch]`, `flag-*` class, inline background colour |
-| DOM comment | Comment appended to body |
-| Hidden DOM text | `#hidden-probe`, `display:none` |
-| Runtime | `window.__APP_STATE__.build` |
-| Browser storage | `localStorage.probe_key` (storage status shown) |
-| Console | Run probe logs `probe-console T…` |
-| Network | Run probe requests `/ping-T….json`; server intentionally returns 404 |
+| `/` or `/index.html` | Search route/date, UI-only swap icon. `search_flights(from,to,date)` |
+| `/results.html` | Six fictional flights, filters and sorting. `filter_flights(max_price?,time_of_day?,max_stops?)`, `sort_flights(by,order)`, `get_flight_results()`. `clear_filters()` only with active filters; `select_flight(flight_id)` only with visible results, with those IDs as its enum |
+| `/checkout.html`, before confirmation | Selected flight, passenger form. `set_passenger_info(name,email,phone?)`, `get_booking_info()`. `confirm_booking()` appears once passenger details are saved |
+| `/checkout.html`, confirmed | Selected flight, passenger details and confirmation code. Only `get_booking_info()` and `start_new_booking()` |
 
-Colour is visually observable; its exact hex value is available from inline style. Hidden text is excluded from the accessibility tree. The answer key reveals every value only when explicitly requested. The expected 404 may appear as a console resource error; it is the deliberate network probe.
+Filters replace the previous filters; omitted fields are cleared. Maximum price is in USD dollars, departure periods are morning (before 12), afternoon (12–17), evening (18 onward), and maximum stops is 0–2. Sort fields are `price`, `departure`, `duration`; order is `asc` or `desc`. Zero matches removes the selection tool. Read tools do not mutate booking state.
 
-## WebMCP tool lifecycle
+UI and tools share action functions. Booking state persists across pages/reloads in `sessionStorage.flight_booking`, scoped to the seed. Direct visits to the wrong step redirect to the valid step. A different seed starts a fresh booking. Session storage is required for navigation; an unavailable or unwritable session store reports an error instead of navigating. The localStorage draft is an optional inspection copy, not a recovery source. There is no cross-tab synchronization.
 
-| Page / state | Tools |
+Tools are not listed on the page. Registration is replaced on state changes; old callbacks reject as stale, pagehide removes registrations, and back/forward cache restores reload. Unsupported APIs are a silent no-op and ordinary controls still work.
+
+## Layers inside the flow
+
+Based on the supplied DOM Probe reference. `?seed=example` deterministically generates flight values, default route/date, tokens and confirmation code; user edits to search/passenger fields remain ordinary inputs. `seed` and `key` survive page navigation. `?key=1` renders a table of planted values, their layers and locations, including the runtime/storage snapshots. Otherwise the answer table has no contents. This is an exposure test, not a secrets system.
+
+| Layer | Planted values and page/element |
 | --- | --- |
-| Probe | `run_probe` |
-| Booking: initial | `search_flights`, `reset_booking` |
-| Booking: results | Above plus `select_flight` (current flight IDs) |
-| Booking: selected | `set_passenger`, `reset_booking` |
-| Booking: reviewed | `confirm_booking`, `reset_booking` |
-| Booking: confirmed | `reset_booking` |
-| Shop: empty | `add_to_cart` |
-| Shop: nonempty | `add_to_cart`, `remove_from_cart` (current product IDs), `checkout` |
+| Visible text | Search route/date fields; results `#route` and flight cards; selected flight on checkout: flight ID, route, date, departure time, duration, stops, price and seat count. Checkout `#confirmation-code` after confirmation |
+| Accessibility | Index `#swap`: icon-only button named by aria-label. Results arrow buttons: aria-label includes flight ID and price. Every page `#message`: aria-live status after actions and step arrivals |
+| DOM attributes/classes | Results cards and checkout selected card: `data-flight-id`, `data-fare-class`, `data-seats-left`, seeded `flight-*` class |
+| Computed style | Cheapest flight's `.cheapest` card: seeded background colour and seeded `::after` fare cue via CSS custom properties. The cue is absent from DOM text (except an explicitly requested answer key) |
+| Hidden DOM / comments | Each results/checkout flight card: `.baggage-fee` text has `display:none`; HTML comment contains a seeded fare-rule token |
+| Page JavaScript | Every page: `window.__BOOKING_STATE__` snapshot refreshed after mutations |
+| Storage | Every page: seeded `localStorage` key `flight-draft-*` with the current snapshot; sessionStorage holds navigation state after the first action |
+| Console | Each step arrival and action logs the seeded `booking-{page}-*` token with its status |
+| Network | Search fetches `/api/flights?from=…&to=…&date=…&seed=…`; the local server returns seeded JSON. Checkout deliberately requests `/missing-*.json` and receives 404 |
 
-Ordinary controls and tools call the same state methods. Actions validate state and inputs at execution time. Registration is replaced after each state change, old callbacks reject as stale, and pagehide clears registrations. A page restored from the back/forward cache reloads to register fresh tools.
+Flight-card cue colours and all other styling can also be inspected in the DOM/CSS. Hidden baggage text is excluded from the accessibility tree. The expected checkout 404 may appear as a console resource error.
 
-Verified on 2026-11-04 against the [2 November 2026 draft](https://webmachinelearning.github.io/webmcp/): `document.modelContext.registerTool(tool, {signal})`, tool `name`, `description`, `inputSchema`, `execute`, and abort-based removal. The current draft does **not** define `provideContext` or `unregisterTool`. The adapter also supports the [older navigator proposal](https://webmachinelearning.github.io/webmcp/docs/proposal.html): `navigator.modelContext.registerTool`/`unregisterTool`, or `provideContext({tools})` replacement. It prefers the current document API when present. These are evolving draft APIs, not a stable standard.
+## WebMCP API and verification
 
-Tools are available only through the browser API and are not displayed on the page. Without a supported API, registration is a graceful no-op; ordinary controls still work. No polyfill or fake browser API is installed. Browser-agent permission mediation and external agent invocation need a compatible WebMCP browser/client and are not covered by the local tests.
+Verified on 2026-11-04 against the [2 November 2026 draft](https://webmachinelearning.github.io/webmcp/): `document.modelContext.registerTool(tool,{signal})` with `name`, `description`, `inputSchema`, `execute`, and abort-based removal. That draft does not define `provideContext` or `unregisterTool`. The adapter also supports the [older navigator proposal](https://webmachinelearning.github.io/webmcp/docs/proposal.html): `navigator.modelContext.registerTool`/`unregisterTool`, or `provideContext({tools})` replacement. It prefers the document API; no fake native API or polyfill is installed. These remain evolving drafts.
 
-Implementation: `public/shared/` owns layout, probes and the adapter; `public/pages/` separates page logic, state and tool declarations; `scripts/server.mjs` serves only `public/` and intentionally missing probes return 404.
+Tests cover page/state tool sets, session persistence, filters, sort, selection guards, confirmation, invalid input, storage errors, adapter cleanup and server responses. A throwaway Chromium 156 script outside this repo verifies native discovery/invocation, the UI flow, filter-dependent schemas, reloads, seeded layers, answer-key visibility, expected requests, unsupported API controls and narrow layouts. External browser-agent invocation and permission mediation are not verified. The legacy API is tested with boundary mocks, not a legacy browser.
 
-## Verification
-
-`npm test` passes six behavior tests for booking/shopping transitions, guards, persistence, adapter lifecycle and HTTP responses. A throwaway Playwright script (not part of this repo) also checked the real pages in cached Chromium 156 with `--enable-features=WebMCP`: native `document.modelContext.getTools()` matched every state, and native `executeTool()` completed booking and shopping as did the ordinary controls. It verified seeded probes, key visibility, console output, intentional 404s, cart reload persistence, navigation cleanup, ordinary controls without API support, and no horizontal overflow at 375px. No unexpected console errors or page exceptions occurred. This verifies in-page native discovery and invocation; it does not verify an external browser agent or permission UI. The older navigator API is covered by a boundary-mock test, not a real legacy browser.
+Implementation pointers: `public/pages/booking.js` owns shared page actions/rendering, `booking-state.js` owns state, `booking-tools.js` declares tools by page/state, `public/shared/flights.js` generates seeded data, and `scripts/server.mjs` serves `public/` plus the mock endpoint.

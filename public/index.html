@@ -1,13 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Probe lab · Browser reach lab</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><script type="module" src="/pages/home.js"></script></head>
-<body><header><strong>Browser reach lab</strong><nav aria-label="Main"><a href="/index.html">Home / probes</a><a href="/booking.html">Tickets</a><a href="/shop.html">Shopping</a></nav></header>
-<main><h1>Browser reach lab</h1>
-<p>A small test bed for screenshots, accessibility, DOM inspection, JavaScript and WebMCP. Try the booking and shopping flows, or inspect the probes below.</p>
-<p>Use <code>?seed=your-test</code> for repeatable values. The tester's answer key is available only with <code>&amp;key=1</code>. This is an exposure test, not a secrets system.</p>
-<section id="notice"><h2>Notice</h2><p>Your demo session is active.</p><button id="dismiss" type="button">×</button></section>
-<div class="grid"><section><h2>Order reference</h2><p id="reference"></p></section>
-<section><h2>Status colour</h2><div id="swatch" class="swatch"></div></section></div>
-<section><h2>Hidden section</h2><p>Nothing to see here.</p><div id="hidden-probe" style="display:none"></div></section>
-<section><h2>Activity</h2><button id="run-probe" type="button">Run probe</button><p id="runs" aria-live="polite">Probe runs: 0</p><p id="network-result" role="status"></p><p id="storage-status" class="muted"></p><p class="muted">Running emits one console message and a deliberately missing request (HTTP 404).</p></section>
-<section id="answer-key" hidden></section>
-</main><footer>Local demo · No external services · All prices and records are fictional</footer></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Book a flight · Demo flights</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><script type="module" src="/pages/booking.js"></script></head>
+<body data-page="index"><header><strong>Demo flights</strong><span>Search → Choose → Checkout</span></header><main><h1>Book a flight</h1>
+<form id="search-form"><label>From<select name="from"><option>SFO</option><option>LAX</option><option>JFK</option></select></label><button id="swap" type="button" aria-label="Swap departure and arrival airports">⇄</button><label>To<select name="to"><option>JFK</option><option>LAX</option><option>SFO</option></select></label><label>Travel date<input name="date" type="date" value="2026-12-01" required></label><button type="submit">Search flights</button></form>
+<p id="message" role="status" aria-live="polite"></p><section id="answer-key" hidden></section></main><footer>Local demo · Fictional flights · Use made-up passenger details</footer></body></html>

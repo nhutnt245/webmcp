@@ -1,61 +1,90 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBooking } from '../public/pages/booking-state.js';
+import { createBooking, pageForState } from '../public/pages/booking-state.js';
 import { bookingTools } from '../public/pages/booking-tools.js';
-import { createShop } from '../public/pages/shop-state.js';
-import { shopTools } from '../public/pages/shop-tools.js';
 import { createToolRegistry } from '../public/shared/webmcp.js';
 import { createDemoServer } from '../scripts/server.mjs';
-
 const names = tools => tools.map(t => t.name).sort();
-test('booking tools follow the workflow and confirmation cannot be repeated', async () => {
-  const booking = createBooking();
-  const tools = () => bookingTools(booking, () => {});
-  assert.deepEqual(names(tools()), ['reset_booking', 'search_flights']);
+const search = { from: 'SFO', to: 'JFK', date: '2026-12-01' };
+const seed = 'test';
+const memory = () => { const data = new Map(); return { getItem: k => data.get(k), setItem: (k,v) => data.set(k,v) }; };
+test('three-page tool sets follow persisted booking and confirmation state', async () => {
+  const storage = memory();
+  let booking = createBooking({ seed, storage });
+  let tools = () => bookingTools(pageForState(booking.state), booking, {});
+  assert.deepEqual(names(tools()), ['search_flights']);
+  assert.deepEqual(bookingTools('checkout', booking, {}), []);
   assert.throws(() => booking.confirm());
-  await tools().find(t => t.name === 'search_flights').execute({ from: 'SFO', to: 'JFK', date: '2026-12-01' });
-  assert.deepEqual(names(tools()), ['reset_booking', 'search_flights', 'select_flight']);
+  booking.search(search);
+  booking = createBooking({ seed, storage });
+  assert.equal(pageForState(booking.state), 'results');
+  assert.equal(booking.state.flights.length, 6);
+  assert.deepEqual(names(tools()), ['filter_flights', 'get_flight_results', 'select_flight', 'sort_flights']);
   assert.throws(() => booking.select({ flight_id: 'missing' }));
   booking.select({ flight_id: 'DM101' });
-  assert.deepEqual(names(tools()), ['reset_booking', 'set_passenger']);
-  assert.throws(() => booking.passenger({ name: 'Ada', email: 'bad' }));
-  booking.passenger({ name: 'Ada', email: 'ada@example.test' });
-  assert.deepEqual(names(tools()), ['confirm_booking', 'reset_booking']);
-  assert.equal(booking.confirm().selected.price, 12900);
-  assert.deepEqual(names(tools()), ['reset_booking']);
+  booking = createBooking({ seed, storage });
+  assert.deepEqual(names(tools()), ['get_booking_info', 'set_passenger_info']);
   assert.throws(() => booking.confirm());
-  booking.reset();
-  assert.throws(() => booking.search({ from: 'SFO', to: 'SFO', date: '2026-12-01' }));
-  assert.throws(() => booking.search({ from: 'SFO', to: 'JFK', date: '2026-02-30' }));
+  assert.throws(() => booking.passenger({ name: 'Ada', email: 'bad' }));
+  booking.passenger({ name: 'Ada', email: 'ada@example.test', phone: '123' });
+  assert.deepEqual(names(tools()), ['confirm_booking', 'get_booking_info', 'set_passenger_info']);
+  const before = storage.getItem('flight_booking');
+  assert.equal(booking.getInfo().passenger.phone, '123');
+  assert.equal(storage.getItem('flight_booking'), before);
+  booking.confirm();
+  booking = createBooking({ seed, storage });
+  assert.match(booking.getInfo().confirmation, /^BOOK-/);
+  assert.deepEqual(names(tools()), ['get_booking_info', 'start_new_booking']);
+  assert.throws(() => booking.confirm());
+  assert.throws(() => booking.passenger({ name: 'Ada', email: 'ada@example.test' }));
+  booking.startNew();
+  assert.equal(pageForState(booking.state), 'index');
+  assert.deepEqual(names(tools()), ['search_flights']);
 });
-test('shopping totals, persistence, removal and checkout preconditions', () => {
-  const data = new Map();
-  const storage = { getItem: k => data.get(k), setItem: (k,v) => data.set(k,v) };
-  const shop = createShop(storage);
-  const tools = () => shopTools(shop, () => {});
-  assert.deepEqual(names(tools()), ['add_to_cart']);
-  assert.throws(() => shop.checkout({ name: 'Ada', address: 'Demo street' }));
-  shop.add({ product_id: 'notebook', quantity: 2 });
-  shop.add({ product_id: 'mug' });
-  assert.equal(shop.state.total, 4200);
-  assert.equal(createShop(storage).state.total, 4200);
-  assert.deepEqual(names(tools()), ['add_to_cart', 'checkout', 'remove_from_cart']);
-  shop.remove({ product_id: 'mug' });
-  assert.equal(shop.state.total, 2400);
-  assert.throws(() => shop.add({ product_id: '__proto__' }));
-  assert.throws(() => shop.add({ product_id: 'bag', quantity: 21 }));
-  assert.throws(() => shop.checkout({ name: ' ', address: 'Demo street' }));
-  shop.checkout({ name: 'Ada', address: 'Demo street' });
-  assert.equal(shop.state.receipt.total, 2400);
-  assert.equal(shop.state.items.length, 0);
-  assert.equal(createShop(storage).state.total, 0);
-  assert.deepEqual(names(tools()), ['add_to_cart']);
+test('filters and sorting control visible results and selection schemas', () => {
+  const booking = createBooking({ seed });
+  booking.search(search);
+  const initial = booking.getResults();
+  const prices = initial.map(f => f.price);
+  assert.equal(new Set(prices).size, 6);
+  booking.filter({ max_price: prices[1] / 100 });
+  assert.deepEqual(booking.getResults().map(f => f.id), ['DM101', 'DM202']);
+  let tools = bookingTools('results', booking, {});
+  assert.ok(names(tools).includes('clear_filters'));
+  assert.deepEqual(tools.find(t => t.name === 'select_flight').inputSchema.properties.flight_id.enum, ['DM101', 'DM202']);
+  assert.throws(() => booking.select({ flight_id: 'DM606' }));
+  booking.sort({ by: 'price', order: 'desc' });
+  assert.deepEqual(booking.getResults().map(f => f.id), ['DM202', 'DM101']);
+  booking.filter({ time_of_day: 'morning', max_stops: 0 });
+  assert.deepEqual(booking.getResults().map(f => f.id), ['DM101']);
+  booking.filter({ max_price: 0 });
+  assert.deepEqual(booking.getResults(), []);
+  assert.ok(!names(bookingTools('results', booking, {})).includes('select_flight'));
+  booking.clearFilters();
+  assert.equal(booking.getResults().length, 6);
+  assert.ok(!names(bookingTools('results', booking, {})).includes('clear_filters'));
+  for (const by of ['departure', 'duration']) {
+    booking.sort({ by, order: 'asc' });
+    const field = by === 'departure' ? 'time' : by;
+    const sorted = booking.getResults().map(f => f[field]);
+    assert.deepEqual(sorted, [...sorted].sort((a,b) => a < b ? -1 : a > b ? 1 : 0));
+  }
+  assert.throws(() => booking.filter({ max_price: -1 }));
+  assert.throws(() => booking.filter({ time_of_day: 'night' }));
+  assert.throws(() => booking.sort({ by: 'other', order: 'asc' }));
 });
-test('blocked or malformed storage falls back to an in-memory cart', () => {
-  const shop = createShop({ getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } });
-  shop.add({ product_id: 'bag' });
-  assert.equal(shop.state.total, 2400);
-  assert.equal(shop.state.storageAvailable, false);
+test('seed changes and malformed sessions reset; invalid inputs and storage failures do not advance', () => {
+  const storage = memory();
+  const booking = createBooking({ seed, storage });
+  assert.throws(() => booking.search({ ...search, to: 'SFO' }));
+  assert.throws(() => booking.search({ ...search, date: '2026-02-30' }));
+  booking.search(search);
+  assert.equal(createBooking({ seed: 'other', storage }).state.stage, 'search');
+  storage.setItem('flight_booking', '{');
+  assert.equal(createBooking({ seed, storage }).state.stage, 'search');
+  const blocked = createBooking({ seed, storage: { getItem() { return null; }, setItem() { throw new Error('blocked'); } } });
+  assert.throws(() => blocked.search(search), /blocked/);
+  assert.equal(blocked.state.stage, 'search');
 });
 test('adapter replaces modern registrations, rejects stale calls, and cleans up on pagehide', async () => {
   const registered = new Map();
@@ -88,17 +117,22 @@ test('legacy provideContext replaces the complete tool list', async () => {
   view.dispatchEvent(new Event('pagehide'));
   assert.deepEqual(tools, []);
 });
-test('server serves all pages, fails the network probe, and contains paths', async t => {
+test('server serves three pages and seeded mock JSON, rejects invalid searches and missing probes', async t => {
   const server = createDemoServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
-  for (const path of ['/', '/booking.html', '/shop.html', '/pages/home.js']) {
-    const response = await fetch(base + path);
-    assert.equal(response.status, 200);
-    assert.ok((await response.text()).length > 0);
-  }
-  assert.equal((await fetch(base + '/ping-test.json')).status, 404);
+  for (const path of ['/', '/results.html', '/checkout.html', '/pages/booking.js']) assert.equal((await fetch(base + path)).status, 200);
+  for (const path of ['/unknown.html', '/missing-seeded.json']) assert.equal((await fetch(base + path)).status, 404);
+  const url = base + '/api/flights?' + new URLSearchParams({ ...search, seed });
+  const response = await fetch(url);
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.deepEqual(data.search, search);
+  assert.equal(data.flights.length, 6);
+  assert.deepEqual(await (await fetch(url)).json(), data);
+  assert.notDeepEqual((await (await fetch(url + '2')).json()).flights, data.flights);
+  assert.equal((await fetch(base + '/api/flights?from=bad')).status, 400);
   assert.equal((await fetch(base + '/%2e%2e%2fpackage.json')).status, 403);
   assert.equal((await fetch(base + '/%FF')).status, 400);
   assert.equal((await fetch(base + '/', { method: 'POST' })).status, 405);

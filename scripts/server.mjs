@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { flightsFor, validateSearch } from '../public/shared/flights.js';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
@@ -18,6 +19,18 @@ export function createDemoServer() {
       }
       if (!['GET', 'HEAD'].includes(req.method)) {
         res.writeHead(405, { Allow: 'GET, HEAD' }).end();
+        return;
+      }
+      const url = new URL(req.url, 'http://localhost');
+      if (pathname === '/api/flights') {
+        let payload;
+        let status = 200;
+        try {
+          const search = validateSearch(Object.fromEntries(url.searchParams));
+          payload = { search, flights: flightsFor(url.searchParams.get('seed') || 'demo', search) };
+        } catch (error) { status = 400; payload = { error: error.message }; }
+        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(req.method === 'HEAD' ? undefined : JSON.stringify(payload));
         return;
       }
       const data = await readFile(path);

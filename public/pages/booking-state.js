@@ -1,38 +1,83 @@
-export const airports = ['SFO', 'LAX', 'JFK'];
-export function createBooking() {
-  let state = { stage: 'search', flights: [], selected: null, passenger: null, confirmation: null };
-  return {
-    get state() { return structuredClone(state); },
-    search({ from, to, date }) {
-      if (!airports.includes(from) || !airports.includes(to) || from === to) throw new Error('Choose two different listed airports.');
-      if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error('Enter a valid travel date.');
-      state = { stage: 'select', flights: [
-        { id: 'DM101', from, to, date, time: '09:00', price: 12900 },
-        { id: 'DM202', from, to, date, time: '15:30', price: 17900 }
-      ], selected: null, passenger: null, confirmation: null };
-      return this.state;
-    },
-    select({ flight_id }) {
-      if (state.stage !== 'select') throw new Error('Search for flights first.');
-      const flight = state.flights.find(item => item.id === flight_id);
-      if (!flight) throw new Error('Choose a flight from the current search.');
-      state.selected = flight;
-      state.stage = 'passengers';
-      return this.state;
-    },
-    passenger({ name, email }) {
-      if (state.stage !== 'passengers') throw new Error('Select a flight first.');
-      if (typeof name !== 'string' || !name.trim() || name.length > 100 || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a passenger name and valid email.');
-      state.passenger = { name: name.trim(), email: email.trim() };
-      state.stage = 'review';
-      return this.state;
-    },
-    confirm() {
-      if (state.stage !== 'review' || !state.selected || !state.passenger) throw new Error('Complete the flight and passenger steps before confirming.');
-      state.confirmation = 'BOOK-' + crypto.randomUUID().slice(0, 8).toUpperCase();
-      state.stage = 'confirmed';
-      return this.state;
-    },
-    reset() { state = { stage: 'search', flights: [], selected: null, passenger: null, confirmation: null }; return this.state; }
-  };
+import { airports, flightsFor, probeValues, validateSearch } from '../shared/flights.js';
+export { airports };
+const timeOfDay = flight => Number(flight.time.slice(0, 2)) < 12 ? 'morning' : Number(flight.time.slice(0, 2)) < 18 ? 'afternoon' : 'evening';
+function validateFilters(input) {
+  const filters = {};
+  if (input.max_price !== undefined) {
+    if (typeof input.max_price !== 'number' || !Number.isFinite(input.max_price) || input.max_price < 0) throw new Error('Enter a nonnegative maximum price in dollars.');
+    filters.max_price = input.max_price;
+  }
+  if (input.time_of_day !== undefined) {
+    if (!['morning', 'afternoon', 'evening'].includes(input.time_of_day)) throw new Error('Choose a listed departure period.');
+    filters.time_of_day = input.time_of_day;
+  }
+  if (input.max_stops !== undefined) {
+    if (!Number.isInteger(input.max_stops) || input.max_stops < 0 || input.max_stops > 2) throw new Error('Choose zero, one or two stops.');
+    filters.max_stops = input.max_stops;
+  }
+  return filters;
 }
+function validateSort({ by, order }) {
+  if (!['price', 'departure', 'duration'].includes(by) || !['asc', 'desc'].includes(order)) throw new Error('Choose a listed sort and order.');
+  return { by, order };
+}
+function passengerDetails({ name, email, phone }) {
+  if (typeof name !== 'string' || !name.trim() || name.length > 100 || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a passenger name and valid email.');
+  if (phone !== undefined && (typeof phone !== 'string' || phone.length > 40)) throw new Error('Enter a phone number of at most 40 characters.');
+  return { name: name.trim(), email: email.trim(), ...(phone?.trim() ? { phone: phone.trim() } : {}) };
+}
+export function createBooking({ seed = 'demo', storage } = {}) {
+  const initial = () => ({ seed, stage: 'search', search: null, selectedId: null, passenger: null, confirmation: null, filters: {}, sort: { by: 'price', order: 'asc' } });
+  let state = initial();
+  try {
+    const saved = JSON.parse(storage?.getItem('flight_booking') || 'null');
+    if (saved?.seed === seed && ['results', 'checkout', 'confirmed'].includes(saved.stage)) {
+      const search = validateSearch(saved.search);
+      const filters = validateFilters(saved.filters);
+      const sort = validateSort(saved.sort);
+      if (saved.stage !== 'results' && !flightsFor(seed, search).some(f => f.id === saved.selectedId)) throw new Error('Invalid flight');
+      const passenger = saved.passenger ? passengerDetails(saved.passenger) : null;
+      if (saved.stage === 'confirmed' && (!passenger || saved.confirmation !== probeValues(seed, 'checkout').confirmation)) throw new Error('Invalid confirmation');
+      state = { ...initial(), search, filters, sort, stage: saved.stage, selectedId: saved.selectedId, passenger, confirmation: saved.confirmation };
+    }
+  } catch { state = initial(); }
+  function save(next) {
+    // Navigation requires session persistence; report failure before mutating state.
+    storage?.setItem('flight_booking', JSON.stringify(next));
+    state = next;
+    return api.state;
+  }
+  function requireStage(stage) { if (state.stage !== stage) throw new Error(`Complete the ${stage} step first.`); }
+  const api = {
+    get state() {
+      const flights = state.search ? flightsFor(seed, state.search) : [];
+      const visibleFlights = flights.filter(f => (state.filters.max_price === undefined || f.price / 100 <= state.filters.max_price) && (state.filters.time_of_day === undefined || timeOfDay(f) === state.filters.time_of_day) && (state.filters.max_stops === undefined || f.stops <= state.filters.max_stops));
+      const field = { departure: 'time', price: 'price', duration: 'duration' }[state.sort.by];
+      visibleFlights.sort((a, b) => (a[field] < b[field] ? -1 : a[field] > b[field] ? 1 : 0) * (state.sort.order === 'asc' ? 1 : -1));
+      return structuredClone({ ...state, flights, visibleFlights, selected: flights.find(f => f.id === state.selectedId) || null });
+    },
+    search(input) { requireStage('search'); return save({ ...initial(), stage: 'results', search: validateSearch(input) }); },
+    filter(input) { requireStage('results'); return save({ ...state, filters: validateFilters(input) }); },
+    clearFilters() { requireStage('results'); return save({ ...state, filters: {} }); },
+    sort(input) { requireStage('results'); return save({ ...state, sort: validateSort(input) }); },
+    getResults() { requireStage('results'); return api.state.visibleFlights; },
+    select({ flight_id }) {
+      requireStage('results');
+      if (!api.state.visibleFlights.some(f => f.id === flight_id)) throw new Error('Choose a flight from the visible results.');
+      return save({ ...state, selectedId: flight_id, stage: 'checkout' });
+    },
+    passenger(input) { requireStage('checkout'); return save({ ...state, passenger: passengerDetails(input) }); },
+    confirm() {
+      requireStage('checkout');
+      if (!state.passenger) throw new Error('Set passenger information before confirming.');
+      return save({ ...state, confirmation: probeValues(seed, 'checkout').confirmation, stage: 'confirmed' });
+    },
+    getInfo() {
+      if (!['checkout', 'confirmed'].includes(state.stage)) throw new Error('Select a flight first.');
+      return { selected: api.state.selected, passenger: structuredClone(state.passenger), status: state.stage, confirmation: state.confirmation };
+    },
+    startNew() { requireStage('confirmed'); return save(initial()); }
+  };
+  return api;
+}
+export function pageForState(state) { return ({ search: 'index', results: 'results', checkout: 'checkout', confirmed: 'checkout' })[state.stage]; }

@@ -1,42 +1,166 @@
-import { installLayout, element, button, money, attempt } from '../shared/ui.js';
+import { element, money } from '../shared/ui.js';
 import { createToolRegistry } from '../shared/webmcp.js';
-import { createBooking } from './booking-state.js';
+import { probeValues, hash, airports } from '../shared/flights.js';
+import { createBooking, pageForState } from './booking-state.js';
 import { bookingTools } from './booking-tools.js';
-installLayout();
-const booking = createBooking();
-const tools = createToolRegistry();
-const searchForm = document.querySelector('#search-form');
-const passengerForm = document.querySelector('#passenger-form');
-searchForm.addEventListener('submit', event => {
-  event.preventDefault();
-  attempt(() => { booking.search(Object.fromEntries(new FormData(searchForm))); render(); });
-});
-passengerForm.addEventListener('submit', event => {
-  event.preventDefault();
-  attempt(() => { booking.passenger(Object.fromEntries(new FormData(passengerForm))); render(); });
-});
-document.querySelector('#reset').addEventListener('click', () => { booking.reset(); passengerForm.reset(); render(); });
-document.querySelector('#confirm').addEventListener('click', () => attempt(() => { booking.confirm(); render(); }));
-function render() {
-  const state = booking.state;
-  document.querySelector('#stage').textContent = `Current step: ${state.stage}`;
-  searchForm.hidden = !['search', 'select'].includes(state.stage);
-  passengerForm.hidden = state.stage !== 'passengers';
-  document.querySelector('#review').hidden = state.stage !== 'review';
-  document.querySelector('#confirmation').hidden = state.stage !== 'confirmed';
-  const results = document.querySelector('#results');
-  results.replaceChildren();
-  results.hidden = state.stage !== 'select';
-  if (state.stage === 'select') for (const flight of state.flights) {
-    const card = element('article', undefined, { class: 'card' });
-    card.append(element('h2', `${flight.id} · ${flight.from} → ${flight.to}`), element('p', `${flight.date} at ${flight.time} · ${money(flight.price)}`), button(`Select ${flight.id}`, () => { booking.select({ flight_id: flight.id }); render(); }));
-    results.append(card);
+const params = new URLSearchParams(location.search);
+const seed = params.get('seed') || 'demo';
+const page = document.body.dataset.page;
+const values = probeValues(seed, page);
+let storage;
+try { storage = sessionStorage; } catch { /* Actions below report persistence failure. */ }
+const booking = createBooking({ seed, storage });
+const registry = createToolRegistry();
+const message = document.querySelector('#message');
+const urlFor = target => {
+  const url = new URL(`/${target}.html`, location.origin);
+  url.searchParams.set('seed', seed);
+  if (params.get('key') === '1') url.searchParams.set('key', '1');
+  return url;
+};
+if (pageForState(booking.state) !== page) {
+  location.replace(urlFor(pageForState(booking.state)));
+} else {
+  const status = text => { message.textContent = text; console.log(values.consoleToken, text); };
+  const publish = () => {
+    window.__BOOKING_STATE__ = booking.state;
+    try { localStorage.setItem(values.draftKey, JSON.stringify(booking.state)); } catch { /* Optional probe storage. */ }
+  };
+  const run = async (method, input, text) => {
+    try {
+      if (!storage) throw new Error('Session storage is required to continue between pages.');
+      if (method === 'search') {
+        const query = new URLSearchParams({ ...input, seed });
+        const response = await fetch(`/api/flights?${query}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Flight search failed.');
+        input = data.search;
+      }
+      const result = booking[method](input);
+      publish(); status(text);
+      const target = pageForState(booking.state);
+      if (target !== page) {
+        // Yield tool results to the browser before the same navigation used by UI actions.
+        setTimeout(() => location.assign(urlFor(target)), 50);
+      } else render();
+      return result;
+    } catch (error) { status(error.message); throw error; }
+  };
+  const actions = {
+    search: input => run('search', input, 'Search complete. Choose a flight.'),
+    filter: input => run('filter', input, 'Flight filters updated.'),
+    clearFilters: () => run('clearFilters', undefined, 'Flight filters cleared.'),
+    sort: input => run('sort', input, 'Flight order updated.'),
+    getResults: () => { status('Current flight results read.'); renderKey(); return booking.getResults(); },
+    select: input => run('select', input, 'Flight selected. Enter passenger information.'),
+    passenger: input => run('passenger', input, 'Passenger information saved. Ready to confirm.'),
+    confirm: () => run('confirm', undefined, 'Your demo booking is confirmed.'),
+    getInfo: () => { status('Booking information read.'); renderKey(); return booking.getInfo(); },
+    startNew: () => run('startNew', undefined, 'New booking started.')
+  };
+  const onClick = (id, action) => document.querySelector(id)?.addEventListener('click', () => Promise.resolve().then(action).catch(() => {}));
+  const onSubmit = (id, action) => document.querySelector(id)?.addEventListener('submit', event => {
+    event.preventDefault(); Promise.resolve().then(() => action(Object.fromEntries(new FormData(event.target)))).catch(() => {});
+  });
+  onSubmit('#search-form', actions.search);
+  onClick('#swap', () => {
+    const form = document.querySelector('#search-form');
+    [form.elements.from.value, form.elements.to.value] = [form.elements.to.value, form.elements.from.value];
+    status(`Airports swapped: ${form.elements.from.value} to ${form.elements.to.value}.`);
+    renderKey();
+  });
+  onSubmit('#filter-form', fields => actions.filter(Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== '').map(([k, v]) => [k, k === 'time_of_day' ? v : Number(v)]))));
+  onSubmit('#sort-form', actions.sort);
+  onClick('#clear-filters', actions.clearFilters);
+  onSubmit('#passenger-form', actions.passenger);
+  onClick('#confirm', actions.confirm);
+  onClick('#start-new', actions.startNew);
+  function flightCard(flight, selectable) {
+    const card = element('article', undefined, { class: `card ${flight.cssClass}`, 'data-flight-id': flight.id, 'data-fare-class': flight.fareClass, 'data-seats-left': flight.seats });
+    if (flight.price === Math.min(...booking.state.flights.map(f => f.price))) {
+      card.classList.add('cheapest');
+      card.style.setProperty('--cheapest-colour', values.cheapestColour);
+      card.style.setProperty('--fare-cue', JSON.stringify(values.cheapestContent));
+    }
+    card.append(element('h2', `${flight.id} · ${flight.from} → ${flight.to}`), element('p', `${flight.date} · ${flight.time} · ${flight.duration} minutes · ${flight.stops} stops`), element('p', `${money(flight.price)} · ${flight.seats} seats left`));
+    card.append(element('span', flight.baggage, { style: 'display:none', class: 'baggage-fee' }), document.createComment(` Fare rule: ${flight.fareRule} `));
+    if (selectable) {
+      const choose = element('button', '➜', { type: 'button', 'aria-label': `Select ${flight.id} for ${money(flight.price)}` });
+      choose.addEventListener('click', () => actions.select({ flight_id: flight.id }).catch(() => {}));
+      card.append(choose);
+    }
+    return card;
   }
-  const summary = document.querySelector('#selection');
-  summary.textContent = state.selected ? `${state.selected.id} · ${state.selected.from} → ${state.selected.to} · ${state.selected.date} · ${money(state.selected.price)}` : '';
-  summary.hidden = !state.selected;
-  document.querySelector('#passenger-summary').textContent = state.passenger ? `${state.passenger.name} · ${state.passenger.email}` : '';
-  document.querySelector('#confirmation-code').textContent = state.confirmation || '';
-  tools.replace(bookingTools(booking, render));
+  function renderKey() {
+    const key = document.querySelector('#answer-key');
+    if (params.get('key') !== '1') return;
+    key.hidden = false;
+    key.replaceChildren(element('h2', `Answer key · seed: ${seed}`));
+    const rows = [];
+    const add = (layer, location, value) => rows.push([layer, location, String(value)]);
+    const state = booking.state;
+    if (page === 'index') {
+      const form = document.querySelector('#search-form');
+      add('Visible', 'Search route and date fields', `${form.elements.from.value} → ${form.elements.to.value} · ${form.elements.date.value}`);
+      add('Accessibility', '#swap aria-label', 'Swap departure and arrival airports');
+    }
+    for (const flight of state.flights) {
+      add('Visible', `${flight.id} route / departure / duration / stops / price / seats`, `${flight.from} → ${flight.to} · ${flight.date} · ${flight.time} · ${flight.duration} min · ${flight.stops} stops · ${money(flight.price)} · ${flight.seats} seats`);
+      add('Accessibility', `${flight.id} Select button on results`, `Select ${flight.id} for ${money(flight.price)}`);
+      add('DOM', `${flight.id} data-flight-id / data-fare-class / data-seats-left / CSS class`, `${flight.id} / ${flight.fareClass} / ${flight.seats} / ${flight.cssClass}`);
+      add('Hidden DOM', `${flight.id} .baggage-fee / HTML comment`, `${flight.baggage} / ${flight.fareRule}`);
+    }
+    if (state.flights.length) add('Computed style', 'Cheapest flight on results / selected flight if cheapest', `${values.cheapestColour} / ::after ${values.cheapestContent}`);
+    add('Accessibility', '#message aria-live', message.textContent);
+    add('JavaScript', 'window.__BOOKING_STATE__', JSON.stringify(state));
+    add('Storage', 'sessionStorage.flight_booking', storage?.getItem('flight_booking') || '(absent until first action)');
+    add('Storage', 'localStorage draft key and value', `${values.draftKey} / ${JSON.stringify(state)}`);
+    add('Console', `Every step (${page})`, values.consoleToken);
+    if (state.search) add('Network', 'Search mock response', `/api/flights?${new URLSearchParams({ ...state.search, seed })}`);
+    if (page === 'checkout') {
+      add('Network', 'Deliberate 404 on checkout', values.failedRequest);
+      add('Visible', 'Confirmation code after confirming', values.confirmation);
+      if (state.passenger) add('Visible', 'Passenger summary', JSON.stringify(state.passenger));
+    }
+    const table = element('table');
+    const header = element('tr');
+    for (const text of ['Layer', 'Element / page', 'Value']) header.append(element('th', text, { scope: 'col' }));
+    table.append(header);
+    for (const fields of rows) { const row = element('tr'); for (const field of fields) row.append(element('td', field)); table.append(row); }
+    key.append(table);
+  }
+  function render() {
+    const state = booking.state;
+    if (page === 'results') {
+      document.querySelector('#route').textContent = `${state.search.from} → ${state.search.to} · ${state.search.date} · ${state.visibleFlights.length} flights`;
+      document.querySelector('#results').replaceChildren(...state.visibleFlights.map(f => flightCard(f, true)));
+      const filter = document.querySelector('#filter-form');
+      for (const name of ['max_price', 'time_of_day', 'max_stops']) filter.elements[name].value = state.filters[name] ?? '';
+      document.querySelector('#clear-filters').hidden = !Object.keys(state.filters).length;
+      const sort = document.querySelector('#sort-form');
+      sort.elements.by.value = state.sort.by; sort.elements.order.value = state.sort.order;
+    }
+    if (page === 'checkout') {
+      document.querySelector('#selection').replaceChildren(flightCard(state.selected, false));
+      const form = document.querySelector('#passenger-form');
+      form.hidden = state.stage === 'confirmed';
+      for (const name of ['name', 'email', 'phone']) form.elements[name].value = state.passenger?.[name] || '';
+      document.querySelector('#passenger-summary').textContent = state.passenger ? Object.values(state.passenger).join(' · ') : '';
+      document.querySelector('#confirm').hidden = !state.passenger || state.stage === 'confirmed';
+      document.querySelector('#confirmation').hidden = state.stage !== 'confirmed';
+      document.querySelector('#confirmation-code').textContent = state.confirmation || '';
+    }
+    renderKey(); registry.replace(bookingTools(page, booking, actions));
+  }
+  if (page === 'index') {
+    const form = document.querySelector('#search-form');
+    const n = hash(seed);
+    form.elements.from.value = airports[n % 3];
+    form.elements.to.value = airports[(n + 1) % 3];
+    form.elements.date.value = `2026-12-${String(1 + n % 28).padStart(2, '0')}`;
+  }
+  publish();
+  status(({ index: 'Choose your route and travel date.', results: 'Search complete. Filter, sort or select a flight.', checkout: booking.state.stage === 'confirmed' ? 'Your demo booking is confirmed.' : 'Flight selected. Enter passenger information.' })[page]);
+  if (page === 'checkout') fetch(values.failedRequest).catch(() => {});
+  render();
 }
-render();
