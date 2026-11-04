@@ -22,7 +22,8 @@ const urlFor = (target) => {
   if (params.get('key') === '1') url.searchParams.set('key', '1');
   return url;
 };
-if (pageForState(booking.state) !== page) {
+const allowedPage = page === 'summary' ? Boolean(booking.state.selected) : pageForState(booking.state) === page;
+if (!allowedPage) {
   location.replace(urlFor(pageForState(booking.state)));
 } else {
   const status = (text) => {
@@ -50,7 +51,7 @@ if (pageForState(booking.state) !== page) {
       const result = booking[method](input);
       publish();
       status(text);
-      const target = pageForState(booking.state);
+      const target = method === 'select' ? 'summary' : pageForState(booking.state);
       if (target !== page) {
         // Yield tool results to the browser before the same navigation used by UI actions.
         setTimeout(() => location.assign(urlFor(target)), 50);
@@ -111,16 +112,19 @@ if (pageForState(booking.state) !== page) {
       'data-fare-class': flight.fareClass,
       'data-seats-left': flight.seats,
     });
-    if (flight.price === Math.min(...booking.state.flights.map((f) => f.price))) {
+    const cheapest = flight.price === Math.min(...booking.state.flights.map((f) => f.price));
+    if (cheapest) {
       card.classList.add('cheapest');
-      card.style.setProperty('--cheapest-colour', values.cheapestColour);
       card.style.setProperty('--fare-cue', JSON.stringify(values.cheapestContent));
     }
     card.append(
       element('h2', `${flight.id} · ${flight.from} → ${flight.to}`),
       element('p', `${flight.date} · ${flight.time} · ${flight.duration} minutes · ${flight.stops} stops`),
-      element('p', `${money(flight.price)} · ${flight.seats} seats left`),
+      element('p', undefined, { class: 'flight-price' }),
     );
+    const price = card.querySelector('.flight-price');
+    price.append(element(cheapest ? 'strong' : 'span', money(flight.price)), ` · ${flight.seats} seats left`);
+    if (cheapest) card.prepend(element('span', 'Lowest price', { class: 'lowest-price-badge' }));
     card.append(
       element('span', flight.baggage, { style: 'display:none', class: 'baggage-fee' }),
       document.createComment(` Fare rule: ${flight.fareRule} `),
@@ -128,8 +132,7 @@ if (pageForState(booking.state) !== page) {
     if (selectable) {
       const selected = booking.state.selectedId === flight.id;
       card.classList.toggle('selected', selected);
-      if (selected) card.append(element('p', 'Selected flight', { class: 'selected-label' }));
-      const choose = element('button', '➜', {
+      const choose = element('button', 'Select flight', {
         type: 'button',
         'aria-label': `Select ${flight.id} for ${money(flight.price)}`,
         'aria-pressed': String(selected),
@@ -174,7 +177,7 @@ if (pageForState(booking.state) !== page) {
       add(
         'Computed style',
         'Cheapest flight on results / selected flight if cheapest',
-        `${values.cheapestColour} / ::after ${values.cheapestContent}`,
+        `::after ${values.cheapestContent}`,
       );
     add('Accessibility', '#message aria-live', message.textContent);
     add('JavaScript', 'window.__BOOKING_STATE__', JSON.stringify(state));
@@ -189,8 +192,8 @@ if (pageForState(booking.state) !== page) {
       add('Network', 'Search mock response', `/api/flights?${new URLSearchParams({ ...state.search, seed })}`);
     if (page === 'results') {
       add('Network', 'Deliberate 404 on results', values.failedRequest);
-      if (state.selected) add('Visible', 'Selected-flight summary #selection-code', values.selectionCode);
     }
+    if (page === 'summary') add('Visible', 'Flight summary #selection-code', values.selectionCode);
     const table = element('table');
     const header = element('tr');
     for (const text of ['Layer', 'Element / page', 'Value']) header.append(element('th', text, { scope: 'col' }));
@@ -208,15 +211,6 @@ if (pageForState(booking.state) !== page) {
       document.querySelector('#route').textContent =
         `${state.search.from} → ${state.search.to} · ${state.search.date} · ${state.visibleFlights.length} flights`;
       document.querySelector('#results').replaceChildren(...state.visibleFlights.map((f) => flightCard(f, true)));
-      const selection = document.querySelector('#selection');
-      selection.hidden = !state.selected;
-      selection.replaceChildren();
-      if (state.selected)
-        selection.append(
-          element('h2', 'Selected flight'),
-          flightCard(state.selected, false),
-          element('p', `Selection code: ${values.selectionCode}`, { id: 'selection-code' }),
-        );
       const filter = document.querySelector('#filter-form');
       for (const name of ['max_price', 'time_of_day', 'max_stops'])
         filter.elements[name].value = state.filters[name] ?? '';
@@ -224,6 +218,15 @@ if (pageForState(booking.state) !== page) {
       const sort = document.querySelector('#sort-form');
       sort.elements.by.value = state.sort.by;
       sort.elements.order.value = state.sort.order;
+    }
+    if (page === 'summary') {
+      document
+        .querySelector('#flight-summary')
+        .replaceChildren(
+          flightCard(state.selected, false),
+          element('p', `Selection code: ${values.selectionCode}`, { id: 'selection-code' }),
+        );
+      document.querySelector('#back-results').href = urlFor('results');
     }
     renderKey();
     registry.replace(bookingTools(page, booking, actions));
@@ -237,7 +240,11 @@ if (pageForState(booking.state) !== page) {
   }
   publish();
   status(
-    { index: 'Choose your route and travel date.', results: 'Search complete. Filter, sort or select a flight.' }[page],
+    {
+      index: 'Choose your route and travel date.',
+      results: 'Search complete. Filter, sort or select a flight.',
+      summary: 'Flight selected.',
+    }[page],
   );
   if (page === 'results') fetch(values.failedRequest).catch(() => {});
   render();

@@ -11,7 +11,7 @@ const memory = () => {
   const data = new Map();
   return { getItem: (k) => data.get(k), setItem: (k, v) => data.set(k, v) };
 };
-test('two-page tools and selected flight persist without leaving results', () => {
+test('results tools and selected flight persist in session', () => {
   const storage = memory();
   let booking = createBooking({ seed, storage });
   const tools = () => bookingTools(pageForState(booking.state), booking, {});
@@ -151,12 +151,13 @@ test('legacy provideContext replaces the complete tool list', async () => {
   view.dispatchEvent(new Event('pagehide'));
   assert.deepEqual(tools, []);
 });
-test('server serves two pages and seeded mock JSON, rejects invalid searches and missing probes', async (t) => {
+test('server serves three pages and seeded mock JSON, rejects invalid searches and missing probes', async (t) => {
   const server = createDemoServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
-  for (const path of ['/', '/results.html', '/pages/booking.js']) assert.equal((await fetch(base + path)).status, 200);
+  for (const path of ['/', '/results.html', '/summary.html', '/pages/booking.js'])
+    assert.equal((await fetch(base + path)).status, 200);
   for (const path of ['/checkout.html', '/unknown.html', '/missing-seeded.json'])
     assert.equal((await fetch(base + path)).status, 404);
   const url = base + '/api/flights?' + new URLSearchParams({ ...search, seed });

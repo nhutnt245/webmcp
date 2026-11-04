@@ -40,7 +40,6 @@ export function probeValues(seed, page) {
     consoleToken: `booking-${page}-${token(seed, page + ':console')}`,
     failedRequest: `/missing-${token(seed, 'network')}.json`,
     selectionCode: `BOOK-${token(seed, 'selection')}`,
-    cheapestColour: ['#e4f3e8', '#e5effa', '#fff2d8'][hash(seed) % 3],
     cheapestContent: `Lowest fare ${token(seed, 'cue')}`,
   };
 }
