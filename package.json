@@ -10,12 +10,9 @@
     "start": "node scripts/server.mjs",
     "test": "node --test",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "evals:smoke": "node scripts/evals-smoke.mjs"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "3.9.10",
-    "puppeteer-core": "25.16.0",
-    "webmcp-evals": "0.0.4"
+    "prettier": "3.9.10"
   }
 }
