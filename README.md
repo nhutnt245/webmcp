@@ -1,8 +1,8 @@
 # Demo flights
 
-A small flight-booking website for comparing how browser agents reach computer-use, accessibility, DOM, page JavaScript, storage, console and network layers, with a WebMCP integration. Plain HTML, CSS and ES modules; no dependencies, build, drivers, API keys or external services.
+A small flight-booking website for comparing how browser agents reach computer-use, accessibility, DOM, page JavaScript, storage, console and network layers, with a WebMCP integration. Plain HTML, CSS and ES modules; the site itself has no runtime dependencies, build, API keys or external services (dev dependencies only serve formatting and the WebMCP evals).
 
-With **Node 22+**, run `npm start` and open http://127.0.0.1:4173. No install is needed. `PORT` changes the port; the server binds IPv4 loopback only. `npm test` runs the behavior tests. No ticket or payment is real.
+With **Node 22+**, run `npm start` and open http://127.0.0.1:4173. No install is needed to serve the demo. `PORT` changes the port; the server binds IPv4 loopback only. `npm test` runs the behavior tests. No ticket or payment is real.
 
 ## Formatting
 
