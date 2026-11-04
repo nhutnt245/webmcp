@@ -142,8 +142,8 @@ td {
   font-size: 0.85rem;
   font-weight: 700;
 }
-.cheapest::after {
-  content: var(--fare-cue);
+#results .cheapest::after {
+  content: 'Lowest fare cue 4821';
   display: block;
   font-weight: 600;
 }

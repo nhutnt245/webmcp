@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { flightsFor, validateSearch } from '../public/shared/flights.js';
+import { flightsFor, probes, validateSearch } from '../public/shared/flights.js';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
@@ -32,7 +32,10 @@ export function createDemoServer() {
           status = 400;
           payload = { error: error.message };
         }
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          [probes.networkHeader]: probes.network,
+        });
         res.end(req.method === 'HEAD' ? undefined : JSON.stringify(payload));
         return;
       }
