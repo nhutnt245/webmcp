@@ -1,12 +1,12 @@
 import { installLayout, element, button, money, attempt } from '../shared/ui.js';
-import { createToolsPanel } from '../shared/webmcp.js';
+import { createToolRegistry } from '../shared/webmcp.js';
 import { createShop, products } from './shop-state.js';
 import { shopTools } from './shop-tools.js';
 installLayout();
 let storage;
 try { storage = localStorage; } catch { /* In-memory shopping still works. */ }
 const shop = createShop(storage);
-const tools = createToolsPanel();
+const tools = createToolRegistry();
 const checkout = document.querySelector('#checkout-form');
 for (const product of products) {
   const card = element('article', undefined, { class: 'card' });

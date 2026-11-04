@@ -1,10 +1,10 @@
 import { installLayout, element, button, money, attempt } from '../shared/ui.js';
-import { createToolsPanel } from '../shared/webmcp.js';
+import { createToolRegistry } from '../shared/webmcp.js';
 import { createBooking } from './booking-state.js';
 import { bookingTools } from './booking-tools.js';
 installLayout();
 const booking = createBooking();
-const tools = createToolsPanel();
+const tools = createToolRegistry();
 const searchForm = document.querySelector('#search-form');
 const passengerForm = document.querySelector('#passenger-form');
 searchForm.addEventListener('submit', event => {

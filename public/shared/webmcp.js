@@ -1,9 +1,7 @@
 // Current document API + the older navigator proposal. No fake native API.
-export function createToolsPanel({ currentDocument = document, currentNavigator = navigator } = {}) {
+export function createToolRegistry({ currentDocument = document, currentNavigator = navigator } = {}) {
   const context = currentDocument.modelContext || currentNavigator.modelContext;
   const modern = Boolean(currentDocument.modelContext);
-  const status = currentDocument.querySelector('#tool-status');
-  const list = currentDocument.querySelector('#tool-list');
   let active = [];
   let controller;
   let queue = Promise.resolve();
@@ -20,17 +18,9 @@ export function createToolsPanel({ currentDocument = document, currentNavigator 
   }
   function replace(tools) {
     const version = ++generation;
-    if (list) list.replaceChildren(...tools.map(tool => {
-      const li = currentDocument.createElement('li');
-      li.textContent = tool.name;
-      return li;
-    }));
     queue = queue.then(async () => {
       clear();
-      if (!supported) {
-        if (status) status.textContent = 'WebMCP unavailable. Listed tools are page definitions only; ordinary controls still work. No polyfill is installed.';
-        return;
-      }
+      if (!supported) return;
       controller = new AbortController();
       const wrapped = tools.map(tool => ({ ...tool, execute: async (input = {}) => {
         if (version !== generation) throw new Error('Tool is stale; refresh the tool list.');
@@ -45,10 +35,9 @@ export function createToolsPanel({ currentDocument = document, currentNavigator 
           active.push(tool);
         }
       }
-      if (status) status.textContent = `Registered with ${modern ? 'document' : 'navigator'}.modelContext.`;
     }).catch(error => {
       clear();
-      if (status) status.textContent = `WebMCP registration failed: ${error.message}`;
+      console.warn('WebMCP registration failed:', error);
     });
     return queue;
   }

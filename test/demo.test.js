@@ -4,7 +4,7 @@ import { createBooking } from '../public/pages/booking-state.js';
 import { bookingTools } from '../public/pages/booking-tools.js';
 import { createShop } from '../public/pages/shop-state.js';
 import { shopTools } from '../public/pages/shop-tools.js';
-import { createToolsPanel } from '../public/shared/webmcp.js';
+import { createToolRegistry } from '../public/shared/webmcp.js';
 import { createDemoServer } from '../scripts/server.mjs';
 
 const names = tools => tools.map(t => t.name).sort();
@@ -61,17 +61,17 @@ test('adapter replaces modern registrations, rejects stale calls, and cleans up 
   const registered = new Map();
   const view = new EventTarget();
   const currentDocument = {
-    querySelector: () => null, defaultView: view,
+    defaultView: view,
     modelContext: { async registerTool(tool, { signal }) {
       assert.equal(registered.has(tool.name), false);
       registered.set(tool.name, tool);
       signal.addEventListener('abort', () => registered.delete(tool.name));
     } }
   };
-  const panel = createToolsPanel({ currentDocument, currentNavigator: {} });
-  await panel.replace([{ name: 'first', execute: () => 'one' }]);
+  const registry = createToolRegistry({ currentDocument, currentNavigator: {} });
+  await registry.replace([{ name: 'first', execute: () => 'one' }]);
   const stale = registered.get('first');
-  await panel.replace([{ name: 'second', execute: () => 'two' }]);
+  await registry.replace([{ name: 'second', execute: () => 'two' }]);
   assert.deepEqual([...registered.keys()], ['second']);
   await assert.rejects(() => stale.execute({}), /stale/);
   assert.equal(await registered.get('second').execute({}), 'two');
@@ -81,9 +81,9 @@ test('adapter replaces modern registrations, rejects stale calls, and cleans up 
 test('legacy provideContext replaces the complete tool list', async () => {
   let tools = [];
   const view = new EventTarget();
-  const panel = createToolsPanel({ currentDocument: { querySelector: () => null, defaultView: view }, currentNavigator: { modelContext: { provideContext(context) { tools = context.tools; } } } });
-  await panel.replace([{ name: 'first', execute: () => true }]);
-  await panel.replace([{ name: 'second', execute: () => true }]);
+  const registry = createToolRegistry({ currentDocument: { defaultView: view }, currentNavigator: { modelContext: { provideContext(context) { tools = context.tools; } } } });
+  await registry.replace([{ name: 'first', execute: () => true }]);
+  await registry.replace([{ name: 'second', execute: () => true }]);
   assert.deepEqual(names(tools), ['second']);
   view.dispatchEvent(new Event('pagehide'));
   assert.deepEqual(tools, []);
