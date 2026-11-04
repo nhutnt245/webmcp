@@ -52,11 +52,7 @@ if (pageForState(booking.state) !== page) {
     clearFilters: () => run('clearFilters', undefined, 'Flight filters cleared.'),
     sort: input => run('sort', input, 'Flight order updated.'),
     getResults: () => { status('Current flight results read.'); renderKey(); return booking.getResults(); },
-    select: input => run('select', input, 'Flight selected. Enter passenger information.'),
-    passenger: input => run('passenger', input, 'Passenger information saved. Ready to confirm.'),
-    confirm: () => run('confirm', undefined, 'Your demo booking is confirmed.'),
-    getInfo: () => { status('Booking information read.'); renderKey(); return booking.getInfo(); },
-    startNew: () => run('startNew', undefined, 'New booking started.')
+    select: input => run('select', input, `Flight ${input.flight_id} selected. See your selected-flight summary.`)
   };
   const onClick = (id, action) => document.querySelector(id)?.addEventListener('click', () => Promise.resolve().then(action).catch(() => {}));
   const onSubmit = (id, action) => document.querySelector(id)?.addEventListener('submit', event => {
@@ -72,9 +68,6 @@ if (pageForState(booking.state) !== page) {
   onSubmit('#filter-form', fields => actions.filter(Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== '').map(([k, v]) => [k, k === 'time_of_day' ? v : Number(v)]))));
   onSubmit('#sort-form', actions.sort);
   onClick('#clear-filters', actions.clearFilters);
-  onSubmit('#passenger-form', actions.passenger);
-  onClick('#confirm', actions.confirm);
-  onClick('#start-new', actions.startNew);
   function flightCard(flight, selectable) {
     const card = element('article', undefined, { class: `card ${flight.cssClass}`, 'data-flight-id': flight.id, 'data-fare-class': flight.fareClass, 'data-seats-left': flight.seats });
     if (flight.price === Math.min(...booking.state.flights.map(f => f.price))) {
@@ -85,7 +78,10 @@ if (pageForState(booking.state) !== page) {
     card.append(element('h2', `${flight.id} · ${flight.from} → ${flight.to}`), element('p', `${flight.date} · ${flight.time} · ${flight.duration} minutes · ${flight.stops} stops`), element('p', `${money(flight.price)} · ${flight.seats} seats left`));
     card.append(element('span', flight.baggage, { style: 'display:none', class: 'baggage-fee' }), document.createComment(` Fare rule: ${flight.fareRule} `));
     if (selectable) {
-      const choose = element('button', '➜', { type: 'button', 'aria-label': `Select ${flight.id} for ${money(flight.price)}` });
+      const selected = booking.state.selectedId === flight.id;
+      card.classList.toggle('selected', selected);
+      if (selected) card.append(element('p', 'Selected flight', { class: 'selected-label' }));
+      const choose = element('button', '➜', { type: 'button', 'aria-label': `Select ${flight.id} for ${money(flight.price)}`, 'aria-pressed': String(selected) });
       choose.addEventListener('click', () => actions.select({ flight_id: flight.id }).catch(() => {}));
       card.append(choose);
     }
@@ -117,10 +113,9 @@ if (pageForState(booking.state) !== page) {
     add('Storage', 'localStorage draft key and value', `${values.draftKey} / ${JSON.stringify(state)}`);
     add('Console', `Every step (${page})`, values.consoleToken);
     if (state.search) add('Network', 'Search mock response', `/api/flights?${new URLSearchParams({ ...state.search, seed })}`);
-    if (page === 'checkout') {
-      add('Network', 'Deliberate 404 on checkout', values.failedRequest);
-      add('Visible', 'Confirmation code after confirming', values.confirmation);
-      if (state.passenger) add('Visible', 'Passenger summary', JSON.stringify(state.passenger));
+    if (page === 'results') {
+      add('Network', 'Deliberate 404 on results', values.failedRequest);
+      if (state.selected) add('Visible', 'Selected-flight summary #selection-code', values.selectionCode);
     }
     const table = element('table');
     const header = element('tr');
@@ -134,21 +129,19 @@ if (pageForState(booking.state) !== page) {
     if (page === 'results') {
       document.querySelector('#route').textContent = `${state.search.from} → ${state.search.to} · ${state.search.date} · ${state.visibleFlights.length} flights`;
       document.querySelector('#results').replaceChildren(...state.visibleFlights.map(f => flightCard(f, true)));
+      const selection = document.querySelector('#selection');
+      selection.hidden = !state.selected;
+      selection.replaceChildren();
+      if (state.selected) selection.append(
+        element('h2', 'Selected flight'),
+        flightCard(state.selected, false),
+        element('p', `Selection code: ${values.selectionCode}`, { id: 'selection-code' })
+      );
       const filter = document.querySelector('#filter-form');
       for (const name of ['max_price', 'time_of_day', 'max_stops']) filter.elements[name].value = state.filters[name] ?? '';
       document.querySelector('#clear-filters').hidden = !Object.keys(state.filters).length;
       const sort = document.querySelector('#sort-form');
       sort.elements.by.value = state.sort.by; sort.elements.order.value = state.sort.order;
-    }
-    if (page === 'checkout') {
-      document.querySelector('#selection').replaceChildren(flightCard(state.selected, false));
-      const form = document.querySelector('#passenger-form');
-      form.hidden = state.stage === 'confirmed';
-      for (const name of ['name', 'email', 'phone']) form.elements[name].value = state.passenger?.[name] || '';
-      document.querySelector('#passenger-summary').textContent = state.passenger ? Object.values(state.passenger).join(' · ') : '';
-      document.querySelector('#confirm').hidden = !state.passenger || state.stage === 'confirmed';
-      document.querySelector('#confirmation').hidden = state.stage !== 'confirmed';
-      document.querySelector('#confirmation-code').textContent = state.confirmation || '';
     }
     renderKey(); registry.replace(bookingTools(page, booking, actions));
   }
@@ -160,7 +153,7 @@ if (pageForState(booking.state) !== page) {
     form.elements.date.value = `2026-12-${String(1 + n % 28).padStart(2, '0')}`;
   }
   publish();
-  status(({ index: 'Choose your route and travel date.', results: 'Search complete. Filter, sort or select a flight.', checkout: booking.state.stage === 'confirmed' ? 'Your demo booking is confirmed.' : 'Flight selected. Enter passenger information.' })[page]);
-  if (page === 'checkout') fetch(values.failedRequest).catch(() => {});
+  status(({ index: 'Choose your route and travel date.', results: 'Search complete. Filter, sort or select a flight.' })[page]);
+  if (page === 'results') fetch(values.failedRequest).catch(() => {});
   render();
 }

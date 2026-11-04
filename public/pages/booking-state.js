@@ -1,4 +1,4 @@
-import { airports, flightsFor, probeValues, validateSearch } from '../shared/flights.js';
+import { airports, flightsFor, validateSearch } from '../shared/flights.js';
 export { airports };
 const timeOfDay = flight => Number(flight.time.slice(0, 2)) < 12 ? 'morning' : Number(flight.time.slice(0, 2)) < 18 ? 'afternoon' : 'evening';
 function validateFilters(input) {
@@ -21,24 +21,17 @@ function validateSort({ by, order }) {
   if (!['price', 'departure', 'duration'].includes(by) || !['asc', 'desc'].includes(order)) throw new Error('Choose a listed sort and order.');
   return { by, order };
 }
-function passengerDetails({ name, email, phone }) {
-  if (typeof name !== 'string' || !name.trim() || name.length > 100 || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a passenger name and valid email.');
-  if (phone !== undefined && (typeof phone !== 'string' || phone.length > 40)) throw new Error('Enter a phone number of at most 40 characters.');
-  return { name: name.trim(), email: email.trim(), ...(phone?.trim() ? { phone: phone.trim() } : {}) };
-}
 export function createBooking({ seed = 'demo', storage } = {}) {
-  const initial = () => ({ seed, stage: 'search', search: null, selectedId: null, passenger: null, confirmation: null, filters: {}, sort: { by: 'price', order: 'asc' } });
+  const initial = () => ({ seed, stage: 'search', search: null, selectedId: null, filters: {}, sort: { by: 'price', order: 'asc' } });
   let state = initial();
   try {
     const saved = JSON.parse(storage?.getItem('flight_booking') || 'null');
-    if (saved?.seed === seed && ['results', 'checkout', 'confirmed'].includes(saved.stage)) {
+    if (saved?.seed === seed && saved.stage === 'results') {
       const search = validateSearch(saved.search);
       const filters = validateFilters(saved.filters);
       const sort = validateSort(saved.sort);
-      if (saved.stage !== 'results' && !flightsFor(seed, search).some(f => f.id === saved.selectedId)) throw new Error('Invalid flight');
-      const passenger = saved.passenger ? passengerDetails(saved.passenger) : null;
-      if (saved.stage === 'confirmed' && (!passenger || saved.confirmation !== probeValues(seed, 'checkout').confirmation)) throw new Error('Invalid confirmation');
-      state = { ...initial(), search, filters, sort, stage: saved.stage, selectedId: saved.selectedId, passenger, confirmation: saved.confirmation };
+      if (saved.selectedId !== null && !flightsFor(seed, search).some(f => f.id === saved.selectedId)) throw new Error('Invalid flight');
+      state = { ...initial(), search, filters, sort, stage: 'results', selectedId: saved.selectedId };
     }
   } catch { state = initial(); }
   function save(next) {
@@ -64,20 +57,9 @@ export function createBooking({ seed = 'demo', storage } = {}) {
     select({ flight_id }) {
       requireStage('results');
       if (!api.state.visibleFlights.some(f => f.id === flight_id)) throw new Error('Choose a flight from the visible results.');
-      return save({ ...state, selectedId: flight_id, stage: 'checkout' });
-    },
-    passenger(input) { requireStage('checkout'); return save({ ...state, passenger: passengerDetails(input) }); },
-    confirm() {
-      requireStage('checkout');
-      if (!state.passenger) throw new Error('Set passenger information before confirming.');
-      return save({ ...state, confirmation: probeValues(seed, 'checkout').confirmation, stage: 'confirmed' });
-    },
-    getInfo() {
-      if (!['checkout', 'confirmed'].includes(state.stage)) throw new Error('Select a flight first.');
-      return { selected: api.state.selected, passenger: structuredClone(state.passenger), status: state.stage, confirmation: state.confirmation };
-    },
-    startNew() { requireStage('confirmed'); return save(initial()); }
+      return save({ ...state, selectedId: flight_id });
+    }
   };
   return api;
 }
-export function pageForState(state) { return ({ search: 'index', results: 'results', checkout: 'checkout', confirmed: 'checkout' })[state.stage]; }
+export function pageForState(state) { return ({ search: 'index', results: 'results' })[state.stage]; }
