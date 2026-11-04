@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createBooking, pageAllowed, pageForState } from '../public/pages/booking-state.js';
 import { bookingTools } from '../public/pages/booking-tools.js';
 import { createToolRegistry } from '../public/shared/webmcp.js';
+import { probes } from '../public/shared/flights.js';
 import { createDemoServer } from '../scripts/server.mjs';
 const names = (tools) => tools.map((t) => t.name).sort();
 const search = { from: 'SFO', to: 'JFK', date: '2026-12-01' };
@@ -191,7 +192,7 @@ test('legacy provideContext replaces the complete tool list', async () => {
   view.dispatchEvent(new Event('pagehide'));
   assert.deepEqual(tools, []);
 });
-test('server serves three pages and seeded mock JSON, rejects invalid searches and missing probes', async (t) => {
+test('server serves three pages and seeded mock JSON, rejects invalid searches, and marks searches with the network probe header', async (t) => {
   const server = createDemoServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
@@ -203,6 +204,7 @@ test('server serves three pages and seeded mock JSON, rejects invalid searches a
   const url = base + '/api/flights?' + new URLSearchParams({ ...search, seed });
   const response = await fetch(url);
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get(probes.networkHeader), probes.network);
   const data = await response.json();
   assert.deepEqual(data.search, search);
   assert.equal(data.flights.length, 6);

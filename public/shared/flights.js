@@ -4,7 +4,6 @@ export function hash(value) {
   for (const char of value) result = Math.imul(result ^ char.charCodeAt(0), 16777619);
   return result >>> 0;
 }
-export const token = (seed, label) => hash(`${seed}:${label}`).toString(36).toUpperCase().padStart(7, '0');
 export function validateSearch({ from, to, date }) {
   if (!airports.includes(from) || !airports.includes(to) || from === to)
     throw new Error('Choose two different listed airports.');
@@ -28,18 +27,17 @@ export function flightsFor(seed, input) {
     seats: 2 + ((n + i * 3) % 8),
     stops: i % 3,
     duration: 100 + ((n + i * 43) % 180),
-    fareClass: i % 2 ? 'FLEX' : 'BASIC',
-    cssClass: `flight-${token(seed, id)}`,
-    baggage: `$${20 + ((n + i) % 20)} baggage fee`,
-    fareRule: `FARE-${token(seed, id + ':rule')}`,
   }));
 }
-export function probeValues(seed, page) {
-  return {
-    draftKey: `flight-draft-${token(seed, 'draft')}`,
-    consoleToken: `booking-${page}-${token(seed, page + ':console')}`,
-    failedRequest: `/missing-${token(seed, 'network')}.json`,
-    selectionCode: `BOOK-${token(seed, 'selection')}`,
-    cheapestContent: `Lowest fare ${token(seed, 'cue')}`,
-  };
-}
+// One artificial example per access layer. The CSS cue lives in styles.css. See README "Access examples".
+export const probes = {
+  dataAttribute: 'FARE-7K2',
+  hiddenText: 'HIDDEN-3M8',
+  comment: 'RULE-9T4',
+  runtime: 'RUNTIME-6B1',
+  storageKey: 'flight-probe',
+  storage: 'STORE-2D5',
+  console: 'CONSOLE-8X3',
+  networkHeader: 'X-Flight-Probe',
+  network: 'NET-5W7',
+};
