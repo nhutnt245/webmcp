@@ -52,8 +52,8 @@ Trường hợp trùng tên trường: xem hướng dẫn trong chú thích "EXP
 
 Sau khi chạy app, mở riêng từng URL sau trong Chrome có bật WebMCP:
 
-- http://127.0.0.1:4173/?experiment=imperative-same-name: thử đăng ký tool imperative `search_flights` trùng tên với form declarative. Tool này không nhận đối số và tìm kiếm bằng các giá trị hiện có trong form.
-- http://127.0.0.1:4173/?experiment=imperative-diff-name: thử đăng ký tool imperative `search_flights_imperative` cho cùng form. Tool nhận `from`, `to`, `date`, điền form rồi chạy hàm tìm kiếm dùng chung.
+- http://127.0.0.1:4173/?experiment=imperative-same-name: thử đăng ký tool imperative `search_flights` trùng tên với form declarative. Tool này không nhận đối số; thay vì tìm kiếm, nó chạy "action 2" và hiện thông báo bắt đầu bằng `[imperative action 2]` với các giá trị hiện có trong form.
+- http://127.0.0.1:4173/?experiment=imperative-diff-name: thử đăng ký tool imperative `search_flights_imperative` cho cùng form. Tool nhận `from`, `to`, `date`, điền form rồi chạy cùng hàm "action 2" (hiện thông báo `[imperative action 2]`, không tìm kiếm và không mở trang kết quả).
 
 Hai thí nghiệm imperative chỉ được nạp ở trang tìm kiếm khi URL có `experiment`; mở lại http://127.0.0.1:4173/ để tắt các tool thử nghiệm này. Xem schema và danh sách tool trong DevTools → Application → WebMCP, đối chiếu với `await document.modelContext.getTools()` và console. Chú thích các trường hợp imperative trong [public/js/experiments.js](public/js/experiments.js) nêu các điểm cần quan sát; chưa có kết luận về cách trình duyệt xử lý các trường hợp này.
 

@@ -59,5 +59,5 @@ function searchFromForm() {
 const experiment = new URLSearchParams(location.search).get('experiment');
 if (experiment) {
   const { runExperiment } = await import('./experiments.js');
-  await runExperiment(experiment, { form: searchForm, search: searchFromForm });
+  await runExperiment(experiment, { form: searchForm });
 }
