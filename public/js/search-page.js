@@ -54,3 +54,10 @@ function searchFromForm() {
     message: `Found ${flights.length} flights from ${search.from} to ${search.to} on ${search.date}. The results page is opening.`,
   };
 }
+
+// Edge-case tests for WebMCP, only with ?experiment=... in the URL. Without it nothing changes. See experiments.js.
+const experiment = new URLSearchParams(location.search).get('experiment');
+if (experiment) {
+  const { runExperiment } = await import('./experiments.js');
+  await runExperiment(experiment, { form: searchForm, search: searchFromForm });
+}
