@@ -1,5 +1,5 @@
 // The status line under the page content (<p id="message">).
-// It is read by screen readers and shows the same text after a human click or an agent call.
+// It is read by screen readers.
 
 const messageElement = document.querySelector('#message');
 

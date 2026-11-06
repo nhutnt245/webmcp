@@ -1,6 +1,6 @@
 // The search page (index.html).
 // The form is a WebMCP DECLARATIVE tool: its toolname/tooldescription/toolautosubmit attributes are in index.html.
-// This file only handles the submit event.
+// Handles the submit event and loads optional schema experiments (see README.md).
 
 import { findFlights, validateSearch } from './flights.js';
 import { showError, showMessage } from './messages.js';
@@ -23,7 +23,7 @@ searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
 
   try {
-    // A human clicking "Search flights" and an agent calling search_flights run this same code.
+    // Human and agent submissions of this declarative form share this handler.
     const result = searchFromForm();
 
     // event.agentInvoked is true only when an AI agent submitted the form.
@@ -53,4 +53,11 @@ function searchFromForm() {
   return {
     message: `Found ${flights.length} flights from ${search.from} to ${search.to} on ${search.date}. The results page is opening.`,
   };
+}
+
+// Edge-case tests for WebMCP, only with ?experiment=... in the URL. Without it nothing changes. See experiments.js.
+const experiment = new URLSearchParams(location.search).get('experiment');
+if (experiment) {
+  const { runExperiment } = await import('./experiments.js');
+  await runExperiment(experiment, { form: searchForm });
 }

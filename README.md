@@ -5,7 +5,7 @@ Một website đặt vé máy bay giả lập (chỉ dùng HTML, CSS và JavaScr
 - **Declarative API**: thêm vài attribute (`toolname`, `tooldescription`, ...) vào `<form>` có sẵn.
 - **Imperative API**: viết JavaScript gọi `document.modelContext.registerTool({ name, description, inputSchema, execute })`.
 
-Cả hai cùng nằm trong **một app**: Search → Results (lọc, sắp xếp) → Summary. Mỗi form hoặc hành động chỉ thuộc về **một** API.
+Cả hai cùng nằm trong **một app**: Search → Results (lọc, sắp xếp) → Summary. Khi không bật thí nghiệm, mỗi form hoặc hành động chỉ thuộc về **một** API.
 
 ## Chạy thử
 
@@ -44,7 +44,20 @@ Nếu trình duyệt không có `document.modelContext`, trang vẫn hoạt đ�
 | Link "Edit search"                | Imperative  | `edit_search`        | `js/imperative-tools.js`                    |
 | Link "Back to results" (summary)  | Imperative  | `back_to_results`    | `js/imperative-tools.js`                    |
 
-Tên tool là duy nhất trong mỗi trang (mỗi trang là một document riêng), nên `edit_search` được đăng ký ở cả trang results và summary mà không bị trùng.
+Khi không bật thí nghiệm, tên tool là duy nhất trong mỗi trang (mỗi trang là một document riêng), nên `edit_search` được đăng ký ở cả trang results và summary mà không bị trùng.
+
+## Thử các trường hợp biên của schema WebMCP
+
+Trường hợp trùng tên trường: xem hướng dẫn trong chú thích "EXPERIMENT: two form items with the same name" ở [public/index.html](public/index.html). Mặc định khối HTML này đang được chú thích; sau khi thử, chú thích lại khối đó để trở về trang mặc định.
+
+Sau khi chạy app, mở riêng từng URL sau trong Chrome có bật WebMCP:
+
+- http://127.0.0.1:4173/?experiment=imperative-same-name: thử đăng ký tool imperative `search_flights` trùng tên với form declarative. Tool này không nhận đối số; thay vì tìm kiếm, nó chạy "action 2" và hiện thông báo bắt đầu bằng `[imperative action 2]` với các giá trị hiện có trong form.
+- http://127.0.0.1:4173/?experiment=imperative-diff-name: thử đăng ký tool imperative `search_flights_imperative` cho cùng form. Tool nhận `from`, `to`, `date`, điền form rồi chạy cùng hàm "action 2" (hiện thông báo `[imperative action 2]`, không tìm kiếm và không mở trang kết quả). Nếu `date` rỗng, sai định dạng `YYYY-MM-DD` hoặc không phải ngày có thật, tool hiện và trả về `{ error }` trước khi thay đổi bất kỳ trường nào.
+
+Action 2 chỉ cập nhật form và thông báo trên trang, không lưu các giá trị vào URL; tải lại trang sẽ mất các thay đổi này.
+
+Hai thí nghiệm imperative chỉ được nạp ở trang tìm kiếm khi URL có `experiment`; mở lại http://127.0.0.1:4173/ để tắt các tool thử nghiệm này. Xem schema và danh sách tool trong DevTools → Application → WebMCP, đối chiếu với `await document.modelContext.getTools()` và console. Chú thích các trường hợp imperative trong [public/js/experiments.js](public/js/experiments.js) nêu các điểm cần quan sát; chưa có kết luận về cách trình duyệt xử lý các trường hợp này.
 
 ## Thứ tự đọc code
 
@@ -64,10 +77,10 @@ Tên tool là duy nhất trong mỗi trang (mỗi trang là một document riên
 
 ## Ý chính cần nhớ
 
-- Người dùng bấm nút và agent gọi tool đều chạy **cùng một hàm**, nên kết quả hiển thị trên trang giống nhau.
-- Trạng thái (route, bộ lọc, sắp xếp, chuyến bay đã chọn) nằm trong URL, ví dụ `/results.html?from=SFO&to=JFK&date=2026-12-01&max_price=150`. Tải lại trang, nút Back hay chia sẻ link đều giữ nguyên trạng thái.
+- Trong luồng mặc định, người dùng bấm nút và agent gọi tool đều chạy **cùng một hàm**, nên kết quả hiển thị trên trang giống nhau. Các thí nghiệm imperative được mô tả ở phần [Thử các trường hợp biên của schema WebMCP](#thử-các-trường-hợp-biên-của-schema-webmcp).
+- Trạng thái của luồng đặt vé (route, bộ lọc, sắp xếp, chuyến bay đã chọn) nằm trong URL, ví dụ `/results.html?from=SFO&to=JFK&date=2026-12-01&max_price=150`. Tải lại trang, nút Back hay chia sẻ link đều giữ nguyên trạng thái.
 - Với form declarative, khi agent gọi tool, trình duyệt điền giá trị vào form rồi submit (`toolautosubmit`). Handler gọi `event.respondWith(Promise)` để trả kết quả. Lỗi cũng được trả bằng `Promise.resolve({ error })`; nếu reject thì agent chỉ nhận được "Tool execution failed".
-- Với tool imperative, lỗi cũng được trả về dạng `{ error }` thay vì `throw`, vì lý do tương tự.
+- Với tool imperative trong luồng mặc định, lỗi cũng được trả về dạng `{ error }` thay vì `throw`, vì lý do tương tự.
 - Các ràng buộc native của form (`required`, `min`, option của `<select>`) được trình duyệt dùng để tạo schema và kiểm tra; giá trị agent gửi sai schema bị trình duyệt từ chối trước khi vào code của trang.
 
 ## Thử Permissions Policy với iframe (`allow="tools"`)

@@ -66,6 +66,28 @@
           />
         </div>
 
+        <!--
+          EXPERIMENT: two form items with the same name.
+          Uncomment the block below to test two form items named "date" in the same form.
+          Look at in DevTools > Application > WebMCP, tool search_flights, its input schema: is "date" one property,
+          two properties, or an array, and which description, default and "required" does it show?
+          On a normal submit, new FormData(form) in js/search-page.js lists both "date" values and
+          Object.fromEntries keeps the LAST one.
+        -->
+        <!--
+        <div class="field">
+          <label for="date-2">Second travel date (experiment: same name as the first one)</label>
+          <input
+            id="date-2"
+            name="date"
+            type="date"
+            value="2026-12-15"
+            required
+            toolparamdescription="Second travel date in YYYY-MM-DD format (experiment: duplicate field name)."
+          />
+        </div>
+        -->
+
         <button type="submit">Search flights</button>
       </form>
 
