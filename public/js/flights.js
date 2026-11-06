@@ -20,12 +20,12 @@ export function validateSearch({ from, to, date }) {
   return { from, to, date };
 }
 
-function isRealDate(text) {
+export function isRealDate(text) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text ?? '')) {
     return false;
   }
   const parsed = new Date(`${text}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
+  return !Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() > 0 && parsed.toISOString().slice(0, 10) === text;
 }
 
 // The same search always gives the same six flights.

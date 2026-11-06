@@ -1,5 +1,5 @@
-import { AIRPORTS } from './flights.js';
-import { showMessage } from './messages.js';
+import { AIRPORTS, isRealDate } from './flights.js';
+import { showError, showMessage } from './messages.js';
 
 // EXPERIMENTS: test how WebMCP behaves in edge cases. See README.md for activation URLs and inspection steps.
 // Only the search page loads this file (see the hook at the bottom of search-page.js).
@@ -22,9 +22,15 @@ export async function runExperiment(name, { form }) {
 // It fills the form from its arguments (if it got any), then shows a message on the page that starts with
 // "[imperative action 2]" and names the route and date. So you can tell on screen which action ran.
 function imperativeAction2(form, { from, to, date } = {}) {
+  if (date !== undefined && !isRealDate(date)) {
+    const error = 'Enter a valid travel date in YYYY-MM-DD format.';
+    showError(error);
+    return { error };
+  }
+
   if (from) form.elements.from.value = from;
   if (to) form.elements.to.value = to;
-  if (date) form.elements.date.value = date;
+  if (date !== undefined) form.elements.date.value = date;
 
   const message = `[imperative action 2] from ${form.elements.from.value} to ${form.elements.to.value} on ${form.elements.date.value}`;
   showMessage(message);
