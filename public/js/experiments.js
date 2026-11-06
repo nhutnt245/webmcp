@@ -1,3 +1,5 @@
+import { AIRPORTS } from './flights.js';
+
 // EXPERIMENTS: test how WebMCP behaves in edge cases. Nothing here runs unless the URL has a flag:
 //   /?experiment=duplicate-field
 //   /?experiment=imperative-same-name
@@ -81,8 +83,6 @@ async function registerSameNameTool(search) {
 //   - call each one with the same route and date: is the result the same, and does the results page open both times?
 //   - given a prompt like "search flights from SFO to JFK", which of the two tools does an agent pick?
 async function registerDifferentNameTool(form, search) {
-  const airports = ['SFO', 'LAX', 'JFK'];
-
   try {
     await document.modelContext.registerTool({
       name: 'search_flights_imperative',
@@ -91,8 +91,8 @@ async function registerDifferentNameTool(form, search) {
       inputSchema: {
         type: 'object',
         properties: {
-          from: { type: 'string', enum: airports, description: 'Departure airport code: SFO, LAX or JFK.' },
-          to: { type: 'string', enum: airports, description: 'Arrival airport code. Must differ from the departure.' },
+          from: { type: 'string', enum: AIRPORTS, description: 'Departure airport code: SFO, LAX or JFK.' },
+          to: { type: 'string', enum: AIRPORTS, description: 'Arrival airport code. Must differ from the departure.' },
           date: { type: 'string', description: 'Travel date in YYYY-MM-DD format.' },
         },
         required: ['from', 'to', 'date'],
