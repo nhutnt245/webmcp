@@ -48,9 +48,10 @@ Khi không bật thí nghiệm, tên tool là duy nhất trong mỗi trang (mỗ
 
 ## Thử các trường hợp biên của schema WebMCP
 
+Trường hợp trùng tên trường: trong [public/index.html](public/index.html), bỏ chú thích khối HTML "EXPERIMENT: two form items with the same name" để thêm một input ngày native thứ hai có cùng `name="date"`, rồi quan sát schema của `search_flights`. Mặc định khối này đang được chú thích nên trang không đổi.
+
 Sau khi chạy app, mở riêng từng URL sau trong Chrome có bật WebMCP:
 
-- http://127.0.0.1:4173/?experiment=duplicate-field: thêm một input ngày native thứ hai có cùng `name="date"` để quan sát schema khi trùng tên trường.
 - http://127.0.0.1:4173/?experiment=imperative-same-name: thử đăng ký tool imperative `search_flights` trùng tên với form declarative. Tool này không nhận đối số và tìm kiếm bằng các giá trị hiện có trong form.
 - http://127.0.0.1:4173/?experiment=imperative-diff-name: thử đăng ký tool imperative `search_flights_imperative` cho cùng form. Tool nhận `from`, `to`, `date`, điền form rồi chạy hàm tìm kiếm dùng chung.
 

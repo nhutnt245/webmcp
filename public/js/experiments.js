@@ -6,43 +6,13 @@ import { AIRPORTS } from './flights.js';
 
 // form is the search form. search runs the same code as the "Search flights" button.
 export async function runExperiment(name, { form, search }) {
-  if (name === 'duplicate-field') {
-    addDuplicateField(form);
-  } else if (name === 'imperative-same-name') {
+  if (name === 'imperative-same-name') {
     await registerSameNameTool(search);
   } else if (name === 'imperative-diff-name') {
     await registerDifferentNameTool(form, search);
   } else {
     console.warn(`Unknown experiment "${name}".`);
   }
-}
-
-// CASE 1: two form items with the same name.
-// The form already has <select name="from">, <select name="to"> and <input name="date">.
-// This adds a second control named "date" (with another default value), so the form has two items called "date".
-//
-// Look at in DevTools > Application > WebMCP, tool search_flights, its input schema:
-//   - is "date" one property, two properties, or an array?
-//   - which description, default and "required" does the "date" property show?
-//   - does the schema differ if you reload the page with the flag compared with no flag?
-// Also run in the console: await document.modelContext.getTools()  and compare with the panel.
-// Then call the tool and look at which date the search uses. On a normal submit, new FormData(form) in
-// search-page.js lists both "date" values, and Object.fromEntries keeps the last one.
-function addDuplicateField(form) {
-  const field = document.createElement('div');
-  field.className = 'field';
-  field.innerHTML = `
-    <label for="date-2">Second travel date (experiment: same name as the first one)</label>
-    <input
-      id="date-2"
-      name="date"
-      type="date"
-      value="2026-12-15"
-      required
-      toolparamdescription="Second travel date in YYYY-MM-DD format (experiment: duplicate field name)."
-    />
-  `;
-  form.querySelector('button[type="submit"]').before(field);
 }
 
 // CASE 2a: an imperative tool with the same name as the declarative form tool.
