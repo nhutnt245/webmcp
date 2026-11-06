@@ -7,12 +7,9 @@
 //   inputSchema  JSON Schema of the arguments (an empty object means "no arguments")
 //   execute      the function that runs when the agent calls the tool
 //
-// document.modelContext.registerTool(tool) makes the tool visible to agents. A tool name can be
-// registered once per page. These pages are separate documents, so each page registers its own tools.
+// document.modelContext.registerTool(tool) makes the tool visible to agents.
 //
 // For API ownership and optional schema experiments, see README.md.
-//
-// Every tool calls the same functions as the buttons on the page, so a human and an agent get the same result.
 
 import { FLIGHT_IDS } from './flights.js';
 

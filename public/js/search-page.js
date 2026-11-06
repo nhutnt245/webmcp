@@ -23,7 +23,7 @@ searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
 
   try {
-    // A human clicking "Search flights" and an agent calling search_flights run this same code.
+    // Human and agent submissions of this declarative form share this handler.
     const result = searchFromForm();
 
     // event.agentInvoked is true only when an AI agent submitted the form.

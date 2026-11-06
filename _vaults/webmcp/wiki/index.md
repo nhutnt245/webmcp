@@ -21,8 +21,7 @@ this wiki; session memory.
   their submit handlers are in [public/js/search-page.js](../../../public/js/search-page.js):1 and
   [public/js/results-page.js](../../../public/js/results-page.js):1.
 - For API ownership and optional schema experiments, see [README.md](../../../README.md).
-- State lives in the page URL, not in storage:
-  [public/js/page-url.js](../../../public/js/page-url.js):1.
+- For booking state and experiment form changes, see [README.md](../../../README.md).
 - Errors reach the agent only when returned as a value (`Promise.resolve({ error })` for `respondWith`, a returned
   object from `execute`); a rejected promise or a thrown error gives the agent only "Tool execution failed"
   (observed in Chrome 158 with `--enable-features=WebMCP`).
