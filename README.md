@@ -5,7 +5,7 @@ Một website đặt vé máy bay giả lập (chỉ dùng HTML, CSS và JavaScr
 - **Declarative API**: thêm vài attribute (`toolname`, `tooldescription`, ...) vào `<form>` có sẵn.
 - **Imperative API**: viết JavaScript gọi `document.modelContext.registerTool({ name, description, inputSchema, execute })`.
 
-Cả hai cùng nằm trong **một app**: Search → Results (lọc, sắp xếp) → Summary. Mỗi form hoặc hành động chỉ thuộc về **một** API.
+Cả hai cùng nằm trong **một app**: Search → Results (lọc, sắp xếp) → Summary. Khi không bật thí nghiệm, mỗi form hoặc hành động chỉ thuộc về **một** API.
 
 ## Chạy thử
 
@@ -44,7 +44,17 @@ Nếu trình duyệt không có `document.modelContext`, trang vẫn hoạt đ�
 | Link "Edit search"                | Imperative  | `edit_search`        | `js/imperative-tools.js`                    |
 | Link "Back to results" (summary)  | Imperative  | `back_to_results`    | `js/imperative-tools.js`                    |
 
-Tên tool là duy nhất trong mỗi trang (mỗi trang là một document riêng), nên `edit_search` được đăng ký ở cả trang results và summary mà không bị trùng.
+Khi không bật thí nghiệm, tên tool là duy nhất trong mỗi trang (mỗi trang là một document riêng), nên `edit_search` được đăng ký ở cả trang results và summary mà không bị trùng.
+
+## Thử các trường hợp biên của schema WebMCP
+
+Sau khi chạy app, mở riêng từng URL sau trong Chrome có bật WebMCP:
+
+- http://127.0.0.1:4173/?experiment=duplicate-field: thêm một input ngày native thứ hai có cùng `name="date"` để quan sát schema khi trùng tên trường.
+- http://127.0.0.1:4173/?experiment=imperative-same-name: thử đăng ký tool imperative `search_flights` trùng tên với form declarative. Tool này không nhận đối số và tìm kiếm bằng các giá trị hiện có trong form.
+- http://127.0.0.1:4173/?experiment=imperative-diff-name: thử đăng ký tool imperative `search_flights_imperative` cho cùng form. Tool nhận `from`, `to`, `date`, điền form rồi chạy hàm tìm kiếm dùng chung.
+
+Các thí nghiệm chỉ được nạp ở trang tìm kiếm khi URL có `experiment`; mở lại http://127.0.0.1:4173/ để trở về luồng mặc định. Xem schema và danh sách tool trong DevTools → Application → WebMCP, đối chiếu với `await document.modelContext.getTools()` và console. Chú thích từng trường hợp trong [public/js/experiments.js](public/js/experiments.js) nêu các điểm cần quan sát; chưa có kết luận về cách trình duyệt xử lý các trường hợp này.
 
 ## Thứ tự đọc code
 

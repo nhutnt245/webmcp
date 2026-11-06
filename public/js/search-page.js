@@ -1,6 +1,6 @@
 // The search page (index.html).
 // The form is a WebMCP DECLARATIVE tool: its toolname/tooldescription/toolautosubmit attributes are in index.html.
-// This file only handles the submit event.
+// Handles the submit event and loads optional schema experiments (see README.md).
 
 import { findFlights, validateSearch } from './flights.js';
 import { showError, showMessage } from './messages.js';

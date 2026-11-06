@@ -10,9 +10,7 @@
 // document.modelContext.registerTool(tool) makes the tool visible to agents. A tool name can be
 // registered once per page. These pages are separate documents, so each page registers its own tools.
 //
-// Which API owns what:
-//   declarative (HTML forms): search_flights, filter_flights, sort_flights
-//   imperative (this file):   get_flight_results, select_flight, clear_filters, edit_search, back_to_results
+// For API ownership and optional schema experiments, see README.md.
 //
 // Every tool calls the same functions as the buttons on the page, so a human and an agent get the same result.
 

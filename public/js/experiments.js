@@ -1,10 +1,6 @@
 import { AIRPORTS } from './flights.js';
 
-// EXPERIMENTS: test how WebMCP behaves in edge cases. Nothing here runs unless the URL has a flag:
-//   /?experiment=duplicate-field
-//   /?experiment=imperative-same-name
-//   /?experiment=imperative-diff-name
-// Open the page with one flag, then look at Chrome DevTools > Application > WebMCP and at the console.
+// EXPERIMENTS: test how WebMCP behaves in edge cases. See README.md for activation URLs and inspection steps.
 // Only the search page loads this file (see the hook at the bottom of search-page.js).
 // The comments say what to look at. They do not claim a result: run the case and write down what you see.
 
